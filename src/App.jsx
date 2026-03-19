@@ -60,15 +60,15 @@ const Svg = ({ children, size = 20, ...props }) => (
 // ==================== MAIN APP ====================
 export default function App() {
   const [page, setPage] = useState('dashboard');
-  const [configured, setConfigured] = useState(false);
   const [loading, setLoading] = useState(true);
   const [toast, setToast] = useState(null);
+  const [dbConnected, setDbConnected] = useState(false);
 
-  const [config, setConfig] = useState({ fbUserToken: '', sheetsApiKey: '', spreadsheetId: '', googleOAuthToken: '', defaultDelay: 30 });
+  const [config, setConfig] = useState({ fbUserToken: '', defaultDelay: 30 });
   const [groups, setGroups] = useState([]);
   const [captions, setCaptions] = useState([]);
-  const [mediaUrls, setMediaUrls] = useState([]); // URL-based media from Google Sheets
-  const [uploadedFiles, setUploadedFiles] = useState([]); // Local file uploads (in memory)
+  const [mediaUrls, setMediaUrls] = useState([]);
+  const [uploadedFiles, setUploadedFiles] = useState([]);
   const [activity, setActivity] = useState([]);
   const [fbPages, setFbPages] = useState([]);
   const [loadingPages, setLoadingPages] = useState(false);
@@ -79,27 +79,26 @@ export default function App() {
   useEffect(() => {
     const saved = localStorage.getItem('fb_poster_config');
     if (saved) {
-      try {
-        const c = JSON.parse(saved);
-        setConfig(c);
-        if (c.spreadsheetId && c.googleOAuthToken) {
-          sheetsDB.configure({ apiKey: c.sheetsApiKey, spreadsheetId: c.spreadsheetId, accessToken: c.googleOAuthToken });
-          setConfigured(true);
-          loadAllData(c);
-        } else setLoading(false);
-      } catch { setLoading(false); }
-    } else setLoading(false);
-    // Load uploaded files from IndexedDB
+      try { setConfig(JSON.parse(saved)); } catch {}
+    }
+    loadAllData();
     loadFilesFromIDB();
   }, []);
 
-  async function loadAllData(cfg) {
+  async function loadAllData() {
     setLoading(true);
     try {
-      sheetsDB.configure({ apiKey: cfg?.sheetsApiKey || config.sheetsApiKey, spreadsheetId: cfg?.spreadsheetId || config.spreadsheetId, accessToken: cfg?.googleOAuthToken || config.googleOAuthToken });
-      const [g, c, m, a] = await Promise.all([sheetsDB.getGroups(), sheetsDB.getCaptions(), sheetsDB.getMedia(), sheetsDB.getActivity()]);
+      const [g, c, m, a] = await Promise.all([
+        sheetsDB.getGroups(), sheetsDB.getCaptions(),
+        sheetsDB.getMedia(), sheetsDB.getActivity()
+      ]);
       setGroups(g); setCaptions(c); setMediaUrls(m); setActivity(a.slice(0, 50));
-    } catch (e) { showToast('โหลดข้อมูลผิดพลาด: ' + e.message, 'error'); }
+      setDbConnected(true);
+    } catch (e) {
+      console.error('Load error:', e);
+      showToast('เชื่อมต่อฐานข้อมูลไม่ได้: ' + e.message, 'error');
+      setDbConnected(false);
+    }
     setLoading(false);
   }
 
@@ -145,12 +144,10 @@ export default function App() {
 
   function showToast(msg, type = 'info') { setToast({ msg, type }); setTimeout(() => setToast(null), 3500); }
 
-  async function saveConfig(newConfig) {
+  function saveConfig(newConfig) {
     const c = { ...config, ...newConfig };
     setConfig(c);
     localStorage.setItem('fb_poster_config', JSON.stringify(c));
-    sheetsDB.configure({ apiKey: c.sheetsApiKey, spreadsheetId: c.spreadsheetId, accessToken: c.googleOAuthToken });
-    if (c.spreadsheetId && c.googleOAuthToken) { setConfigured(true); await loadAllData(c); }
     showToast('บันทึกตั้งค่าสำเร็จ', 'success');
   }
 
@@ -205,8 +202,8 @@ export default function App() {
         </nav>
         <div style={S.sidebarFooter}>
           <div style={S.dbStatus}>
-            <div style={{ ...S.statusDot, background: configured ? '#10B981' : '#EF4444' }} />
-            <span style={{ fontSize: 11, color: '#8B95A8' }}>{configured ? 'Google Sheets เชื่อมต่อ' : 'ยังไม่เชื่อมต่อ'}</span>
+            <div style={{ ...S.statusDot, background: dbConnected ? '#10B981' : '#EF4444' }} />
+            <span style={{ fontSize: 11, color: '#8B95A8' }}>{dbConnected ? 'Google Sheets เชื่อมต่อ' : 'กำลังเชื่อมต่อ...'}</span>
           </div>
         </div>
       </aside>
@@ -215,15 +212,6 @@ export default function App() {
       <main style={S.main}>
         {loading ? (
           <div style={S.loadingScreen}><div className="spinner" /><p style={{ marginTop: 16, color: '#8B95A8' }}>กำลังโหลด...</p></div>
-        ) : !configured && page !== 'settings' ? (
-          <div style={S.setupScreen}>
-            <div style={S.setupCard}>
-              <Svg size={48} style={{ color: '#1877F2' }}>{I.db}</Svg>
-              <h2 style={{ fontSize: 22, fontWeight: 700, marginTop: 16 }}>ตั้งค่าระบบก่อนเริ่มใช้งาน</h2>
-              <p style={{ color: '#8B95A8', marginTop: 8, lineHeight: 1.7 }}>เชื่อมต่อ Google Sheets + Facebook Token</p>
-              <button style={{ ...S.btnPrimary, marginTop: 16 }} onClick={() => setPage('settings')}><Svg size={18}>{I.settings}</Svg> ไปตั้งค่า</button>
-            </div>
-          </div>
         ) : (
           <>
             {page === 'dashboard' && <DashboardPage groups={groups} captions={captions} allMedia={allMedia} activity={activity} onRefresh={() => loadAllData()} />}
@@ -272,7 +260,7 @@ export default function App() {
                 showToast={showToast}
               />
             )}
-            {page === 'settings' && <SettingsPage config={config} onSave={saveConfig} onInit={async () => { try { const r = await sheetsDB.initializeSheets(); showToast(r.success ? 'สร้าง headers สำเร็จ' : r.error, r.success ? 'success' : 'error'); } catch (e) { showToast(e.message, 'error'); } }} showToast={showToast} />}
+            {page === 'settings' && <SettingsPage config={config} onSave={saveConfig} dbConnected={dbConnected} onReload={loadAllData} showToast={showToast} />}
           </>
         )}
       </main>
@@ -1003,38 +991,70 @@ function CaptionsPage({ captions, groups, onSave, showToast }) {
 }
 
 // ==================== SETTINGS PAGE ====================
-function SettingsPage({ config, onSave, onInit, showToast }) {
+function SettingsPage({ config, onSave, dbConnected, onReload, showToast }) {
   const [form, setForm] = useState(config);
   return (
     <div><div style={S.pageHeader}><h1 style={S.pageTitle}>ตั้งค่า</h1></div>
+
       <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 20 }}>
+        {/* Facebook */}
         <div style={{ ...S.card, border: '1px solid #1877F2' }}>
           <h3 style={{ ...S.cardTitle, color: '#1877F2' }}><Svg size={20}>{I.facebook}</Svg>&nbsp; Facebook</h3>
-          <label style={S.label}>User Access Token</label><input style={S.input} type="password" value={form.fbUserToken} onChange={e => setForm(f => ({ ...f, fbUserToken: e.target.value }))} placeholder="Facebook User Access Token" />
-          <p style={{ fontSize: 11, color: '#5A647A', marginTop: 6 }}>รับ Token จาก <a href="https://developers.facebook.com/tools/explorer/" target="_blank" rel="noreferrer" style={{ color: '#1877F2' }}>Graph API Explorer</a></p>
-          <label style={{ ...S.label, marginTop: 14 }}>Default Delay (วินาที)</label><input style={S.input} type="number" value={form.defaultDelay} min="10" max="300" onChange={e => setForm(f => ({ ...f, defaultDelay: +e.target.value }))} />
+          <label style={S.label}>User Access Token</label>
+          <input style={S.input} type="password" value={form.fbUserToken} onChange={e => setForm(f => ({ ...f, fbUserToken: e.target.value }))} placeholder="Facebook User Access Token" />
+          <p style={{ fontSize: 11, color: '#5A647A', marginTop: 6, lineHeight: 1.6 }}>
+            รับ Token จาก <a href="https://developers.facebook.com/tools/explorer/" target="_blank" rel="noreferrer" style={{ color: '#1877F2' }}>Graph API Explorer</a><br/>
+            Permissions: <code style={{ fontSize: 10, background: '#0A0E17', padding: '1px 4px', borderRadius: 3 }}>pages_manage_posts</code> + <code style={{ fontSize: 10, background: '#0A0E17', padding: '1px 4px', borderRadius: 3 }}>pages_show_list</code>
+          </p>
+          <label style={{ ...S.label, marginTop: 14 }}>Default Delay (วินาที)</label>
+          <input style={S.input} type="number" value={form.defaultDelay} min="10" max="300" onChange={e => setForm(f => ({ ...f, defaultDelay: +e.target.value }))} />
         </div>
-        <div style={{ ...S.card, border: '1px solid #10B981' }}>
-          <h3 style={{ ...S.cardTitle, color: '#10B981' }}><Svg size={20}>{I.db}</Svg>&nbsp; Google Sheets</h3>
-          <label style={S.label}>Spreadsheet ID</label><input style={S.input} value={form.spreadsheetId} onChange={e => setForm(f => ({ ...f, spreadsheetId: e.target.value }))} placeholder="จาก URL" />
-          <label style={{ ...S.label, marginTop: 14 }}>OAuth Token</label><input style={S.input} type="password" value={form.googleOAuthToken} onChange={e => setForm(f => ({ ...f, googleOAuthToken: e.target.value }))} placeholder="Google OAuth Token" />
-          <p style={{ fontSize: 11, color: '#5A647A', marginTop: 6 }}>ใช้ <a href="https://developers.google.com/oauthplayground/" target="_blank" rel="noreferrer" style={{ color: '#10B981' }}>OAuth Playground</a></p>
-          <label style={{ ...S.label, marginTop: 14 }}>API Key</label><input style={S.input} value={form.sheetsApiKey} onChange={e => setForm(f => ({ ...f, sheetsApiKey: e.target.value }))} placeholder="ไม่บังคับ" />
+
+        {/* Database Status */}
+        <div style={{ ...S.card, border: `1px solid ${dbConnected ? '#10B981' : '#EF4444'}` }}>
+          <h3 style={{ ...S.cardTitle, color: dbConnected ? '#10B981' : '#EF4444' }}><Svg size={20}>{I.db}</Svg>&nbsp; ฐานข้อมูล Google Sheets</h3>
+          
+          <div style={{ padding: 16, background: '#0A0E17', borderRadius: 10, border: `1px solid ${dbConnected ? 'rgba(16,185,129,0.3)' : 'rgba(239,68,68,0.3)'}`, marginBottom: 14 }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 8 }}>
+              <div style={{ width: 12, height: 12, borderRadius: '50%', background: dbConnected ? '#10B981' : '#EF4444', boxShadow: `0 0 8px ${dbConnected ? '#10B98166' : '#EF444466'}` }} />
+              <span style={{ fontSize: 14, fontWeight: 700, color: dbConnected ? '#10B981' : '#EF4444' }}>
+                {dbConnected ? '✓ เชื่อมต่อสำเร็จ' : '✗ ไม่สามารถเชื่อมต่อ'}
+              </span>
+            </div>
+            <p style={{ fontSize: 12, color: '#5A647A', lineHeight: 1.6 }}>
+              ฐานข้อมูลเชื่อมต่อผ่าน Google Apps Script อัตโนมัติ<br/>
+              ไม่ต้องตั้งค่าเพิ่มเติม
+            </p>
+          </div>
+
+          <div style={{ fontSize: 12, color: '#5A647A', lineHeight: 1.8 }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: 6, marginBottom: 4 }}>
+              <span style={{ color: '#10B981' }}>✓</span> groups — เก็บข้อมูลเพจ
+            </div>
+            <div style={{ display: 'flex', alignItems: 'center', gap: 6, marginBottom: 4 }}>
+              <span style={{ color: '#10B981' }}>✓</span> captions — เก็บแคปชั่น
+            </div>
+            <div style={{ display: 'flex', alignItems: 'center', gap: 6, marginBottom: 4 }}>
+              <span style={{ color: '#10B981' }}>✓</span> media — เก็บ URL สื่อ
+            </div>
+            <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+              <span style={{ color: '#10B981' }}>✓</span> activity — ประวัติโพสต์
+            </div>
+          </div>
+
+          <button style={{ ...S.btnSecondary, marginTop: 14, width: '100%' }} onClick={async () => {
+            showToast('กำลังเชื่อมต่อใหม่...', 'info');
+            await onReload();
+            showToast('โหลดข้อมูลใหม่สำเร็จ', 'success');
+          }}>
+            <Svg size={16}>{I.refresh}</Svg> โหลดข้อมูลใหม่
+          </button>
         </div>
       </div>
-      <div style={{ display: 'flex', gap: 10, marginTop: 20 }}>
-        <button style={S.btnPrimary} onClick={() => onSave(form)}><Svg size={16}>{I.save}</Svg> บันทึกตั้งค่า</button>
-        <button style={S.btnSecondary} onClick={onInit}><Svg size={16}>{I.db}</Svg> สร้าง Sheet Headers</button>
-      </div>
-      <div style={{ ...S.card, marginTop: 24 }}>
-        <h3 style={S.cardTitle}>📋 วิธีตั้งค่า</h3>
-        <ol style={{ color: '#8B95A8', fontSize: 13, lineHeight: 2, paddingLeft: 20 }}>
-          <li>สร้าง Google Spreadsheet → สร้าง 5 sheets: <code>groups</code>, <code>captions</code>, <code>media</code>, <code>activity</code>, <code>settings</code></li>
-          <li>คัดลอก Spreadsheet ID จาก URL</li>
-          <li>ไป <a href="https://developers.google.com/oauthplayground/" target="_blank" rel="noreferrer" style={{ color: '#10B981' }}>OAuth Playground</a> → เลือก Google Sheets API v4 → Authorize → คัดลอก Access Token</li>
-          <li>วาง Token ที่นี่ → บันทึก → กด "สร้าง Sheet Headers"</li>
-        </ol>
-      </div>
+
+      <button style={{ ...S.btnPrimary, marginTop: 20 }} onClick={() => onSave(form)}>
+        <Svg size={16}>{I.save}</Svg> บันทึกตั้งค่า
+      </button>
     </div>
   );
 }
