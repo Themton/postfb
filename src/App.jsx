@@ -153,7 +153,9 @@ export default function App() {
 function PostPage({groups,captions,allMedia,mediaUrls,uploadedFiles,config,isPosting,postProgress,notify,onSaveUrls,onAddFiles,onDelFile,onClearFiles,onStart,onStop}) {
   const [selGroup,setSelGroup] = useState('');
   const [postCount,setPostCount] = useState(10);
-  const [delay,setDelay] = useState(config.defaultDelay||30);
+  const [schedule,setSchedule] = useState('10m'); // 'now','10m','1h','24h','custom'
+  const [customDelay,setCustomDelay] = useState(30);
+  const [startTime,setStartTime] = useState(''); // for scheduled: datetime-local
   const [capMode,setCapMode] = useState('random');
   const [mediaMode,setMediaMode] = useState('random');
   const [singleCap,setSingleCap] = useState('');
@@ -163,16 +165,27 @@ function PostPage({groups,captions,allMedia,mediaUrls,uploadedFiles,config,isPos
   const [previewPosts,setPreviewPosts] = useState([]);
   const fileRef = useRef();
 
+  const scheduleOptions = [
+    {id:'now',label:'โพสต์ทันที',desc:'ห่างกัน 30 วินาที',delaySec:30,color:'#EF4444'},
+    {id:'10m',label:'ห่าง 10 นาที',desc:'โพสต์ทุก 10 นาที',delaySec:600,color:'#F59E0B'},
+    {id:'1h',label:'ห่าง 1 ชม.',desc:'โพสต์ทุก 1 ชั่วโมง',delaySec:3600,color:'#1877F2'},
+    {id:'24h',label:'ห่าง 24 ชม.',desc:'วันละ 1 โพสต์',delaySec:86400,color:'#8B5CF6'},
+    {id:'custom',label:'กำหนดเอง',desc:'ตั้งเวลาเอง',delaySec:customDelay,color:'#10B981'},
+  ];
+  const currentSchedule = scheduleOptions.find(s=>s.id===schedule)||scheduleOptions[0];
+  const delaySec = schedule==='custom'?customDelay:currentSchedule.delaySec;
+
   const group = groups.find(g=>g.id===selGroup);
   const actualPages = groups.filter(g=>g.pageId);
   const groupNames = ['Default',...new Set(groups.map(g=>g.name).filter(n=>n&&n!=='Default'))];
   const gc = captions.filter(c=>!selGroup || c.groupId===groups.find(g=>g.id===selGroup)?.name || c.groupId==='_default');
   const gm = allMedia.filter(m=>!selGroup || m.groupId===groups.find(g=>g.id===selGroup)?.name || m.groupId==='_default');
 
-  // Generate preview posts
+  // Generate preview posts with schedule times
   function generatePreview() {
     if(!group) { notify('เลือกเพจก่อน','error'); return; }
     const posts = [];
+    const baseTime = startTime ? new Date(startTime) : new Date();
     for(let i=0;i<postCount;i++){
       let caption;
       if(capMode==='single') caption=singleCap;
@@ -184,7 +197,9 @@ function PostPage({groups,captions,allMedia,mediaUrls,uploadedFiles,config,isPos
         const idx=mediaMode==='random'?Math.floor(Math.random()*gm.length):i%gm.length;
         media=gm[idx];
       }
-      posts.push({caption,media,pageId:group.pageId,pageToken:group.pageToken,pageName:group.pageName||group.pageId});
+
+      const scheduledAt = new Date(baseTime.getTime() + i * delaySec * 1000);
+      posts.push({caption,media,pageId:group.pageId,pageToken:group.pageToken,pageName:group.pageName||group.pageId,scheduledAt});
     }
     setPreviewPosts(posts);
   }
@@ -196,7 +211,7 @@ function PostPage({groups,captions,allMedia,mediaUrls,uploadedFiles,config,isPos
       media: p.media ? (p.media.source==='url'?{source:'url',url:p.media.url,isVideo:p.media.isVideo}:
         p.media.source==='base64'?{source:'base64',base64:p.media.base64,mimeType:p.media.mimeType,fileName:p.media.fileName,isVideo:p.media.isVideo}:null) : null
     }));
-    onStart({posts,delay,groupName:group?.name||''});
+    onStart({posts,delay:delaySec,groupName:group?.name||''});
   }
 
   // File upload
@@ -280,22 +295,59 @@ function PostPage({groups,captions,allMedia,mediaUrls,uploadedFiles,config,isPos
         {/* Post settings */}
         <div style={S.card}>
           <h3 style={S.cardTitle}>2. ตั้งค่า</h3>
-          <div style={{display:'grid',gridTemplateColumns:'1fr 1fr',gap:14}}>
-            <div>
-              <label style={S.label}>จำนวนโพสต์</label>
-              <div style={{display:'flex',alignItems:'center',gap:10}}>
-                <input type="range" min="1" max="50" value={postCount} onChange={e=>setPostCount(+e.target.value)} style={{flex:1,accentColor:'#1877F2'}}/>
-                <span style={{fontFamily:'monospace',fontSize:18,fontWeight:700,color:'#1877F2',minWidth:28}}>{postCount}</span>
-              </div>
-            </div>
-            <div>
-              <label style={S.label}>หน่วงเวลา (วินาที)</label>
-              <div style={{display:'flex',alignItems:'center',gap:10}}>
-                <input type="range" min="10" max="300" step="5" value={delay} onChange={e=>setDelay(+e.target.value)} style={{flex:1,accentColor:'#F59E0B'}}/>
-                <span style={{fontFamily:'monospace',fontSize:18,fontWeight:700,color:'#F59E0B',minWidth:36}}>{delay}s</span>
-              </div>
-            </div>
+          <label style={S.label}>จำนวนโพสต์</label>
+          <div style={{display:'flex',alignItems:'center',gap:10,marginBottom:16}}>
+            <input type="range" min="1" max="50" value={postCount} onChange={e=>setPostCount(+e.target.value)} style={{flex:1,accentColor:'#1877F2'}}/>
+            <span style={{fontFamily:'monospace',fontSize:20,fontWeight:700,color:'#1877F2',minWidth:32,textAlign:'right'}}>{postCount}</span>
           </div>
+
+          <label style={S.label}>กำหนดเวลาโพส</label>
+          <div style={{display:'grid',gridTemplateColumns:'repeat(5,1fr)',gap:6,marginBottom:12}}>
+            {scheduleOptions.map(s=>(
+              <button key={s.id} onClick={()=>setSchedule(s.id)} style={{
+                padding:'10px 4px',borderRadius:10,border:`1.5px solid ${schedule===s.id?s.color:'#2A3650'}`,
+                background:schedule===s.id?s.color+'18':'#0A0E17',cursor:'pointer',textAlign:'center',transition:'0.15s'
+              }}>
+                <div style={{fontSize:13,fontWeight:700,color:schedule===s.id?s.color:'#8B95A8'}}>{s.label}</div>
+                <div style={{fontSize:10,color:'#5A647A',marginTop:2}}>{s.desc}</div>
+              </button>
+            ))}
+          </div>
+
+          {/* Custom delay input */}
+          {schedule==='custom'&&<div style={{marginBottom:12}}>
+            <label style={S.label}>ระยะห่าง (วินาที)</label>
+            <div style={{display:'flex',alignItems:'center',gap:10}}>
+              <input type="range" min="10" max="86400" step="10" value={customDelay} onChange={e=>setCustomDelay(+e.target.value)} style={{flex:1,accentColor:'#10B981'}}/>
+              <span style={{fontFamily:'monospace',fontSize:14,fontWeight:700,color:'#10B981',minWidth:80,textAlign:'right'}}>
+                {customDelay>=3600?Math.floor(customDelay/3600)+'ชม. '+Math.floor((customDelay%3600)/60)+'น.':customDelay>=60?Math.floor(customDelay/60)+'น. '+(customDelay%60)+'ว.':customDelay+'วินาที'}
+              </span>
+            </div>
+          </div>}
+
+          {/* Start time picker */}
+          {schedule!=='now'&&<div style={{marginBottom:12}}>
+            <label style={S.label}>เริ่มโพสต์เมื่อ</label>
+            <div style={{display:'flex',gap:8,alignItems:'center'}}>
+              <input type="datetime-local" style={{...S.input,flex:1}} value={startTime} onChange={e=>setStartTime(e.target.value)}/>
+              <button style={{...S.btnSmall,background:'#1A2235',border:'1px solid #2A3650',color:'#8B95A8',padding:'10px 12px'}} onClick={()=>{const n=new Date();n.setMinutes(n.getMinutes()+5);setStartTime(n.toISOString().slice(0,16));}}>ตอนนี้</button>
+            </div>
+            <p style={{fontSize:11,color:'#5A647A',marginTop:4}}>ว่างไว้ = เริ่มทันที</p>
+          </div>}
+
+          {/* Schedule summary */}
+          <div style={{padding:'10px 14px',background:'#0A0E17',borderRadius:8,border:`1px solid ${currentSchedule.color}33`,display:'flex',alignItems:'center',gap:10}}>
+            <div style={{width:8,height:8,borderRadius:'50%',background:currentSchedule.color}}/>
+            <span style={{fontSize:12,color:'#8B95A8'}}>
+              {schedule==='now'?`โพสต์ ${postCount} โพสต์ทันที (ห่างกัน 30 วินาที)`:
+                `โพสต์ ${postCount} โพสต์ ห่างกัน ${currentSchedule.label.replace('ห่าง ','')} — ใช้เวลาทั้งหมด ~${
+                  delaySec*postCount>=86400?Math.round(delaySec*postCount/86400)+' วัน':
+                  delaySec*postCount>=3600?Math.round(delaySec*postCount/3600)+' ชม.':
+                  Math.round(delaySec*postCount/60)+' นาที'
+                }`}
+            </span>
+          </div>
+
           <label style={{...S.label,marginTop:14}}>โหมดแคปชั่น</label>
           <div style={{display:'flex',gap:6}}>
             {[{id:'random',icon:I.shuffle,l:'สุ่ม'},{id:'sequential',icon:I.list,l:'ตามลำดับ'},{id:'single',icon:I.file,l:'แคปชั่นเดียว'}].map(m=>
@@ -379,18 +431,28 @@ function FBPostPreview({index,post}) {
   const isVid = post.media?.isVideo;
   const thumbUrl = post.media?.preview || (post.media?.source==='url'?post.media.url:null);
 
+  const schedTime = post.scheduledAt ? new Date(post.scheduledAt) : null;
+  const timeStr = schedTime ? schedTime.toLocaleDateString('th-TH',{day:'2-digit',month:'short'}) + ' ' + schedTime.toLocaleTimeString('th-TH',{hour:'2-digit',minute:'2-digit'}) : '';
+  const isNow = schedTime && (schedTime.getTime() - Date.now() < 60000);
+
   return (
     <div style={{background:'#1A2235',borderRadius:12,border:'1px solid #2A3650',overflow:'hidden'}}>
+      {/* Schedule banner */}
+      <div style={{display:'flex',alignItems:'center',gap:8,padding:'6px 14px',background:isNow?'rgba(239,68,68,0.1)':'rgba(24,119,242,0.06)',borderBottom:'1px solid #2A3650'}}>
+        <span style={{fontSize:14}}>🕐</span>
+        <span style={{fontSize:11,fontWeight:600,color:isNow?'#EF4444':'#1877F2'}}>{isNow?'โพสต์ทันที':timeStr}</span>
+        <span style={{marginLeft:'auto',fontSize:10,padding:'2px 8px',background:isNow?'#EF444422':'#1877F222',color:isNow?'#EF4444':'#1877F2',borderRadius:10,fontWeight:600}}>#{index+1}</span>
+      </div>
+
       {/* Header */}
-      <div style={{display:'flex',alignItems:'center',gap:10,padding:'12px 14px'}}>
+      <div style={{display:'flex',alignItems:'center',gap:10,padding:'10px 14px'}}>
         <div style={{width:36,height:36,borderRadius:'50%',background:'#1877F2',display:'flex',alignItems:'center',justifyContent:'center',color:'white',fontSize:14,fontWeight:700}}>
           {(post.pageName||'P')[0].toUpperCase()}
         </div>
         <div style={{flex:1}}>
           <div style={{fontSize:13,fontWeight:700,color:'#F0F2F5'}}>{post.pageName||'Page'}</div>
-          <div style={{fontSize:10,color:'#5A647A'}}>ตัวอย่างโพสต์ #{index+1}</div>
+          <div style={{fontSize:10,color:'#5A647A'}}>{timeStr||'ตัวอย่าง'}</div>
         </div>
-        <span style={{fontSize:10,padding:'2px 8px',background:'#1877F222',color:'#1877F2',borderRadius:10,fontWeight:600}}>#{index+1}</span>
       </div>
 
       {/* Caption */}
