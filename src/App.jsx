@@ -279,149 +279,139 @@ function PostPage({groups,captions,allMedia,mediaUrls,uploadedFiles,config,isPos
   return <div>
     <div style={S.pageHeader}><h1 style={S.pageTitle}>สร้างโพสต์</h1></div>
 
-    <div style={{display:'grid',gridTemplateColumns:'1fr 1fr',gap:20}}>
-      {/* ===== LEFT: Settings + Media ===== */}
-      <div style={{display:'flex',flexDirection:'column',gap:16}}>
-        {/* Select page */}
-        <div style={S.card}>
-          <h3 style={S.cardTitle}>1. เลือกเพจ</h3>
-          <select style={S.input} value={selGroup} onChange={e=>{setSelGroup(e.target.value);setPreviewPosts([]);}}>
-            <option value="">-- เลือกเพจ --</option>
-            {actualPages.map(g=><option key={g.id} value={g.id}>{g.pageName||g.pageId} ({g.name})</option>)}
-          </select>
-          {!actualPages.length&&<p style={{fontSize:12,color:'#F59E0B',marginTop:8}}>⚠ ยังไม่มีเพจ — ไปเพิ่มที่เมนู "เพจ" ก่อน</p>}
-        </div>
-
-        {/* Post settings */}
-        <div style={S.card}>
-          <h3 style={S.cardTitle}>2. ตั้งค่า</h3>
-          <label style={S.label}>จำนวนโพสต์</label>
-          <div style={{display:'flex',alignItems:'center',gap:10,marginBottom:16}}>
-            <input type="range" min="1" max="50" value={postCount} onChange={e=>setPostCount(+e.target.value)} style={{flex:1,accentColor:'#1877F2'}}/>
-            <span style={{fontFamily:'monospace',fontSize:20,fontWeight:700,color:'#1877F2',minWidth:32,textAlign:'right'}}>{postCount}</span>
-          </div>
-
-          <label style={S.label}>กำหนดเวลาโพส</label>
-          <div style={{display:'grid',gridTemplateColumns:'repeat(5,1fr)',gap:6,marginBottom:12}}>
-            {scheduleOptions.map(s=>(
-              <button key={s.id} onClick={()=>setSchedule(s.id)} style={{
-                padding:'10px 4px',borderRadius:10,border:`1.5px solid ${schedule===s.id?s.color:'#2A3650'}`,
-                background:schedule===s.id?s.color+'18':'#0A0E17',cursor:'pointer',textAlign:'center',transition:'0.15s'
-              }}>
-                <div style={{fontSize:13,fontWeight:700,color:schedule===s.id?s.color:'#8B95A8'}}>{s.label}</div>
-                <div style={{fontSize:10,color:'#5A647A',marginTop:2}}>{s.desc}</div>
-              </button>
-            ))}
-          </div>
-
-          {/* Custom delay input */}
-          {schedule==='custom'&&<div style={{marginBottom:12}}>
-            <label style={S.label}>ระยะห่าง (วินาที)</label>
-            <div style={{display:'flex',alignItems:'center',gap:10}}>
-              <input type="range" min="10" max="86400" step="10" value={customDelay} onChange={e=>setCustomDelay(+e.target.value)} style={{flex:1,accentColor:'#10B981'}}/>
-              <span style={{fontFamily:'monospace',fontSize:14,fontWeight:700,color:'#10B981',minWidth:80,textAlign:'right'}}>
-                {customDelay>=3600?Math.floor(customDelay/3600)+'ชม. '+Math.floor((customDelay%3600)/60)+'น.':customDelay>=60?Math.floor(customDelay/60)+'น. '+(customDelay%60)+'ว.':customDelay+'วินาที'}
-              </span>
-            </div>
-          </div>}
-
-          {/* Start time picker */}
-          {schedule!=='now'&&<div style={{marginBottom:12}}>
-            <label style={S.label}>เริ่มโพสต์เมื่อ</label>
-            <div style={{display:'flex',gap:8,alignItems:'center'}}>
-              <input type="datetime-local" style={{...S.input,flex:1}} value={startTime} onChange={e=>setStartTime(e.target.value)}/>
-              <button style={{...S.btnSmall,background:'#1A2235',border:'1px solid #2A3650',color:'#8B95A8',padding:'10px 12px'}} onClick={()=>{const n=new Date();n.setMinutes(n.getMinutes()+5);setStartTime(n.toISOString().slice(0,16));}}>ตอนนี้</button>
-            </div>
-            <p style={{fontSize:11,color:'#5A647A',marginTop:4}}>ว่างไว้ = เริ่มทันที</p>
-          </div>}
-
-          {/* Schedule summary */}
-          <div style={{padding:'10px 14px',background:'#0A0E17',borderRadius:8,border:`1px solid ${currentSchedule.color}33`,display:'flex',alignItems:'center',gap:10}}>
-            <div style={{width:8,height:8,borderRadius:'50%',background:currentSchedule.color}}/>
-            <span style={{fontSize:12,color:'#8B95A8'}}>
-              {schedule==='now'?`โพสต์ ${postCount} โพสต์ทันที (ห่างกัน 30 วินาที)`:
-                `โพสต์ ${postCount} โพสต์ ห่างกัน ${currentSchedule.label.replace('ห่าง ','')} — ใช้เวลาทั้งหมด ~${
-                  delaySec*postCount>=86400?Math.round(delaySec*postCount/86400)+' วัน':
-                  delaySec*postCount>=3600?Math.round(delaySec*postCount/3600)+' ชม.':
-                  Math.round(delaySec*postCount/60)+' นาที'
-                }`}
-            </span>
-          </div>
-
-          <label style={{...S.label,marginTop:14}}>โหมดแคปชั่น</label>
-          <div style={{display:'flex',gap:6}}>
-            {[{id:'random',icon:I.shuffle,l:'สุ่ม'},{id:'sequential',icon:I.list,l:'ตามลำดับ'},{id:'single',icon:I.file,l:'แคปชั่นเดียว'}].map(m=>
-              <button key={m.id} onClick={()=>setCapMode(m.id)} style={{...S.modeBtn,...(capMode===m.id?S.modeBtnActive:{})}}><Svg size={16}>{m.icon}</Svg> {m.l}</button>
-            )}
-          </div>
-          {capMode==='single'&&<textarea style={{...S.input,marginTop:10,minHeight:60}} value={singleCap} onChange={e=>setSingleCap(e.target.value)} placeholder="พิมพ์แคปชั่น..."/>}
-        </div>
-
-        {/* Media upload */}
-        <div style={S.card}>
-          <h3 style={S.cardTitle}>3. สื่อ (รูป/วิดีโอ)
-            <span style={{marginLeft:'auto',fontSize:12,fontWeight:500,color:'#8B95A8'}}>{allMedia.length} รายการ</span>
-          </h3>
-          <div onDragOver={e=>{e.preventDefault();setDragging(true);}} onDragLeave={()=>setDragging(false)} onDrop={handleDrop} onClick={()=>fileRef.current?.click()}
-            style={{padding:'24px 16px',border:`2px dashed ${dragging?'#1877F2':'#2A3650'}`,borderRadius:12,textAlign:'center',cursor:'pointer',background:dragging?'rgba(24,119,242,0.05)':'#0A0E17',transition:'0.2s'}}>
-            <Svg size={28} style={{color:'#1877F2',margin:'0 auto'}}>{I.upload}</Svg>
-            <p style={{fontSize:13,fontWeight:600,marginTop:8}}>ลากไฟล์มาวาง หรือคลิกเลือก</p>
-            <p style={{fontSize:11,color:'#5A647A',marginTop:4}}>JPG, PNG, MP4, MOV — สูงสุด 50 ไฟล์</p>
-            <input ref={fileRef} type="file" multiple accept="image/*,video/*" hidden onChange={handleFileSelect}/>
-          </div>
-
-          {/* File thumbnails */}
-          {uploadedFiles.length>0&&<div style={{display:'grid',gridTemplateColumns:'repeat(5,1fr)',gap:6,marginTop:10}}>
-            {uploadedFiles.slice(0,10).map(f=>(
-              <div key={f.id} style={{position:'relative',aspectRatio:'1',borderRadius:8,overflow:'hidden',border:'1px solid #2A3650',background:'#0A0E17'}}>
-                {f.preview?<img src={f.preview} alt="" style={{width:'100%',height:'100%',objectFit:'cover'}}/>:
-                  <div style={{width:'100%',height:'100%',display:'flex',alignItems:'center',justifyContent:'center',color:'#F59E0B'}}><Svg size={20}>{I.film}</Svg></div>}
-                <button onClick={e=>{e.stopPropagation();onDelFile(f.id);}} style={{position:'absolute',top:2,right:2,width:18,height:18,borderRadius:'50%',background:'rgba(239,68,68,0.9)',border:'none',color:'#fff',cursor:'pointer',fontSize:12,display:'flex',alignItems:'center',justifyContent:'center'}}>×</button>
-              </div>
-            ))}
-            {uploadedFiles.length>10&&<div style={{aspectRatio:'1',borderRadius:8,background:'#1A2235',display:'flex',alignItems:'center',justifyContent:'center',color:'#8B95A8',fontSize:12}}>+{uploadedFiles.length-10}</div>}
-          </div>}
-
-          {/* URL input toggle */}
-          <button onClick={()=>setShowUrlBox(!showUrlBox)} style={{...S.btnSmall,background:'none',border:'1px solid #2A3650',color:'#8B95A8',marginTop:10,width:'100%'}}>
-            <Svg size={14}>{I.link}</Svg> {showUrlBox?'ซ่อน URL':'เพิ่ม URL รูป/วิดีโอ'}
-          </button>
-          {showUrlBox&&<div style={{marginTop:8}}>
-            <textarea style={{...S.input,minHeight:60,fontFamily:'monospace',fontSize:11}} value={urlInput} onChange={e=>setUrlInput(e.target.value)} placeholder={"https://example.com/photo.jpg\nhttps://example.com/video.mp4"}/>
-            <button style={{...S.btnPrimary,marginTop:6,width:'100%'}} onClick={addUrls}><Svg size={14}>{I.link}</Svg> เพิ่ม URL</button>
-          </div>}
-        </div>
-
-        {/* Action buttons */}
-        <div style={{display:'flex',gap:10}}>
-          <button style={{...S.btnSecondary,flex:1,padding:'14px',fontSize:14}} onClick={generatePreview} disabled={!selGroup}>
-            <Svg size={18}>{I.eye}</Svg> ดูตัวอย่าง {postCount} โพสต์
-          </button>
-          <button style={{...S.btnDanger,flex:1,padding:'14px',fontSize:14,opacity:previewPosts.length?1:0.4}} onClick={startPost} disabled={!previewPosts.length}>
-            <Svg size={18}>{I.send}</Svg> โพสต์เลย!
-          </button>
+    {/* ===== TOP: Settings row ===== */}
+    <div style={{display:'grid',gridTemplateColumns:'1fr 1fr 1fr',gap:14,marginBottom:16}}>
+      {/* 1. เลือกเพจ */}
+      <div style={S.card}>
+        <h3 style={S.cardTitle}>1. เลือกเพจ</h3>
+        <select style={S.input} value={selGroup} onChange={e=>{setSelGroup(e.target.value);setPreviewPosts([]);}}>
+          <option value="">-- เลือกเพจ --</option>
+          {actualPages.map(g=><option key={g.id} value={g.id}>{g.pageName||g.pageId} ({g.name})</option>)}
+        </select>
+        {!actualPages.length&&<p style={{fontSize:12,color:'#F59E0B',marginTop:8}}>⚠ ไปเพิ่มที่เมนู "เพจ" ก่อน</p>}
+        
+        <label style={{...S.label,marginTop:14}}>จำนวนโพสต์</label>
+        <div style={{display:'flex',alignItems:'center',gap:10}}>
+          <input type="range" min="1" max="50" value={postCount} onChange={e=>setPostCount(+e.target.value)} style={{flex:1,accentColor:'#1877F2'}}/>
+          <span style={{fontFamily:'monospace',fontSize:20,fontWeight:700,color:'#1877F2',minWidth:32,textAlign:'right'}}>{postCount}</span>
         </div>
       </div>
 
-      {/* ===== RIGHT: Preview ===== */}
-      <div>
-        <div style={{display:'flex',alignItems:'center',justifyContent:'space-between',marginBottom:12}}>
-          <h3 style={{fontSize:15,fontWeight:700}}>ตัวอย่างโพสต์ {previewPosts.length>0&&<span style={{color:'#1877F2'}}>({previewPosts.length})</span>}</h3>
-          {previewPosts.length>0&&<button style={S.btnSmall} onClick={generatePreview}><Svg size={12}>{I.shuffle}</Svg> สุ่มใหม่</button>}
+      {/* 2. กำหนดเวลา */}
+      <div style={S.card}>
+        <h3 style={S.cardTitle}>2. กำหนดเวลา</h3>
+        <div style={{display:'grid',gridTemplateColumns:'repeat(3,1fr)',gap:5,marginBottom:10}}>
+          {scheduleOptions.slice(0,3).map(s=>(
+            <button key={s.id} onClick={()=>setSchedule(s.id)} style={{padding:'8px 4px',borderRadius:8,border:`1.5px solid ${schedule===s.id?s.color:'#2A3650'}`,background:schedule===s.id?s.color+'18':'#0A0E17',cursor:'pointer',textAlign:'center'}}>
+              <div style={{fontSize:12,fontWeight:700,color:schedule===s.id?s.color:'#8B95A8'}}>{s.label}</div>
+            </button>
+          ))}
+        </div>
+        <div style={{display:'grid',gridTemplateColumns:'1fr 1fr',gap:5,marginBottom:10}}>
+          {scheduleOptions.slice(3).map(s=>(
+            <button key={s.id} onClick={()=>setSchedule(s.id)} style={{padding:'8px 4px',borderRadius:8,border:`1.5px solid ${schedule===s.id?s.color:'#2A3650'}`,background:schedule===s.id?s.color+'18':'#0A0E17',cursor:'pointer',textAlign:'center'}}>
+              <div style={{fontSize:12,fontWeight:700,color:schedule===s.id?s.color:'#8B95A8'}}>{s.label}</div>
+            </button>
+          ))}
         </div>
 
-        <div style={{maxHeight:'calc(100vh - 140px)',overflowY:'auto',display:'flex',flexDirection:'column',gap:12,paddingRight:4}}>
-          {previewPosts.length===0&&(
-            <div style={{...S.card,textAlign:'center',padding:40}}>
-              <Svg size={48} style={{color:'#2A3650'}}>{I.eye}</Svg>
-              <p style={{color:'#5A647A',marginTop:12}}>กดปุ่ม "ดูตัวอย่าง" เพื่อเรนเดอร์โพสต์</p>
-              <p style={{color:'#5A647A',fontSize:12,marginTop:4}}>ระบบจะจับคู่แคปชั่น + สื่อ แล้วแสดงก่อนโพสต์จริง</p>
-            </div>
+        {schedule==='custom'&&<div style={{marginBottom:8}}>
+          <div style={{display:'flex',alignItems:'center',gap:8}}>
+            <input type="range" min="10" max="86400" step="10" value={customDelay} onChange={e=>setCustomDelay(+e.target.value)} style={{flex:1,accentColor:'#10B981'}}/>
+            <span style={{fontFamily:'monospace',fontSize:12,fontWeight:700,color:'#10B981',minWidth:70,textAlign:'right'}}>
+              {customDelay>=3600?Math.floor(customDelay/3600)+'ชม.'+Math.floor((customDelay%3600)/60)+'น.':customDelay>=60?Math.floor(customDelay/60)+'น.':customDelay+'วิ.'}
+            </span>
+          </div>
+        </div>}
+
+        {schedule!=='now'&&<div style={{marginBottom:8}}>
+          <label style={S.label}>เริ่มเมื่อ</label>
+          <div style={{display:'flex',gap:6}}>
+            <input type="datetime-local" style={{...S.input,flex:1,fontSize:12,padding:'8px 10px'}} value={startTime} onChange={e=>setStartTime(e.target.value)}/>
+            <button style={{...S.btnSmall,background:'#1A2235',border:'1px solid #2A3650',color:'#8B95A8',padding:'8px 10px'}} onClick={()=>{const n=new Date();n.setMinutes(n.getMinutes()+5);setStartTime(n.toISOString().slice(0,16));}}>ตอนนี้</button>
+          </div>
+        </div>}
+
+        <div style={{padding:'8px 12px',background:'#0A0E17',borderRadius:6,fontSize:11,color:'#8B95A8',display:'flex',alignItems:'center',gap:6}}>
+          <div style={{width:6,height:6,borderRadius:'50%',background:currentSchedule.color}}/>
+          {schedule==='now'?`${postCount} โพสต์ ห่าง 30 วินาที`:
+            `${postCount} โพสต์ ~${delaySec*postCount>=86400?Math.round(delaySec*postCount/86400)+' วัน':delaySec*postCount>=3600?Math.round(delaySec*postCount/3600)+' ชม.':Math.round(delaySec*postCount/60)+' นาที'}`}
+        </div>
+      </div>
+
+      {/* 3. แคปชั่น + สื่อ */}
+      <div style={S.card}>
+        <h3 style={S.cardTitle}>3. แคปชั่น + สื่อ</h3>
+        <label style={S.label}>โหมดแคปชั่น</label>
+        <div style={{display:'flex',gap:5,marginBottom:10}}>
+          {[{id:'random',icon:I.shuffle,l:'สุ่ม'},{id:'sequential',icon:I.list,l:'ลำดับ'},{id:'single',icon:I.file,l:'เดียว'}].map(m=>
+            <button key={m.id} onClick={()=>setCapMode(m.id)} style={{...S.modeBtn,padding:'8px 6px',fontSize:11,...(capMode===m.id?S.modeBtnActive:{})}}><Svg size={14}>{m.icon}</Svg>{m.l}</button>
           )}
+        </div>
+        {capMode==='single'&&<textarea style={{...S.input,marginBottom:8,minHeight:50,fontSize:12}} value={singleCap} onChange={e=>setSingleCap(e.target.value)} placeholder="พิมพ์แคปชั่น..."/>}
+
+        {/* Upload zone */}
+        <div onDragOver={e=>{e.preventDefault();setDragging(true);}} onDragLeave={()=>setDragging(false)} onDrop={handleDrop} onClick={()=>fileRef.current?.click()}
+          style={{padding:'14px 10px',border:`2px dashed ${dragging?'#1877F2':'#2A3650'}`,borderRadius:10,textAlign:'center',cursor:'pointer',background:dragging?'rgba(24,119,242,0.05)':'#0A0E17',marginBottom:8}}>
+          <Svg size={22} style={{color:'#1877F2',margin:'0 auto'}}>{I.upload}</Svg>
+          <p style={{fontSize:12,fontWeight:600,marginTop:4}}>อัพโหลดรูป/วิดีโอ</p>
+          <p style={{fontSize:10,color:'#5A647A',marginTop:2}}>ลากมาวาง หรือคลิก ({allMedia.length} ไฟล์)</p>
+          <input ref={fileRef} type="file" multiple accept="image/*,video/*" hidden onChange={handleFileSelect}/>
+        </div>
+
+        {/* Thumbnails mini */}
+        {uploadedFiles.length>0&&<div style={{display:'flex',gap:4,flexWrap:'wrap'}}>
+          {uploadedFiles.slice(0,6).map(f=>(
+            <div key={f.id} style={{width:36,height:36,borderRadius:6,overflow:'hidden',border:'1px solid #2A3650',background:'#0A0E17',position:'relative'}}>
+              {f.preview?<img src={f.preview} alt="" style={{width:'100%',height:'100%',objectFit:'cover'}}/>:
+                <div style={{width:'100%',height:'100%',display:'flex',alignItems:'center',justifyContent:'center',color:'#F59E0B'}}><Svg size={14}>{I.film}</Svg></div>}
+            </div>
+          ))}
+          {uploadedFiles.length>6&&<div style={{width:36,height:36,borderRadius:6,background:'#1A2235',display:'flex',alignItems:'center',justifyContent:'center',color:'#8B95A8',fontSize:10}}>+{uploadedFiles.length-6}</div>}
+        </div>}
+
+        <button onClick={()=>setShowUrlBox(!showUrlBox)} style={{...S.btnSmall,background:'none',border:'1px solid #2A3650',color:'#8B95A8',marginTop:6,width:'100%',fontSize:10}}>
+          <Svg size={12}>{I.link}</Svg> {showUrlBox?'ซ่อน':'เพิ่ม URL'}
+        </button>
+        {showUrlBox&&<div style={{marginTop:6}}>
+          <textarea style={{...S.input,minHeight:50,fontFamily:'monospace',fontSize:10}} value={urlInput} onChange={e=>setUrlInput(e.target.value)} placeholder="https://example.com/photo.jpg"/>
+          <button style={{...S.btnPrimary,marginTop:4,width:'100%',fontSize:11,padding:'6px'}} onClick={addUrls}><Svg size={12}>{I.link}</Svg> เพิ่ม</button>
+        </div>}
+      </div>
+    </div>
+
+    {/* Action buttons */}
+    <div style={{display:'flex',gap:10,marginBottom:20}}>
+      <button style={{...S.btnSecondary,flex:1,padding:'14px',fontSize:15}} onClick={generatePreview} disabled={!selGroup}>
+        <Svg size={18}>{I.eye}</Svg> ดูตัวอย่าง {postCount} โพสต์
+      </button>
+      <button style={{...S.btnDanger,flex:1,padding:'14px',fontSize:15,opacity:previewPosts.length?1:0.4}} onClick={startPost} disabled={!previewPosts.length}>
+        <Svg size={18}>{I.send}</Svg> โพสต์เลย!
+      </button>
+      {previewPosts.length>0&&<button style={{...S.btnPrimary,padding:'14px',fontSize:15}} onClick={generatePreview}>
+        <Svg size={18}>{I.shuffle}</Svg> สุ่มใหม่
+      </button>}
+    </div>
+
+    {/* ===== PREVIEW: Full-width FB post cards ===== */}
+    {previewPosts.length===0&&(
+      <div style={{...S.card,textAlign:'center',padding:48}}>
+        <Svg size={56} style={{color:'#2A3650'}}>{I.eye}</Svg>
+        <p style={{color:'#5A647A',marginTop:16,fontSize:15}}>กดปุ่ม "ดูตัวอย่าง" เพื่อดูโพสต์ก่อนอัพโหลด</p>
+        <p style={{color:'#5A647A',fontSize:12,marginTop:4}}>ระบบจะจับคู่แคปชั่น + สื่อ แล้วแสดงเหมือนโพสต์ Facebook จริง</p>
+      </div>
+    )}
+
+    {previewPosts.length>0&&(
+      <div>
+        <div style={{display:'flex',alignItems:'center',justifyContent:'space-between',marginBottom:14}}>
+          <h3 style={{fontSize:16,fontWeight:700}}>ตัวอย่างโพสต์ <span style={{color:'#1877F2'}}>({previewPosts.length})</span></h3>
+        </div>
+        <div style={{display:'grid',gridTemplateColumns:'repeat(auto-fill, minmax(360px, 1fr))',gap:16}}>
           {previewPosts.map((p,i)=><FBPostPreview key={i} index={i} post={p}/>)}
         </div>
       </div>
-    </div>
+    )}
   </div>;
 }
 
@@ -430,60 +420,84 @@ function FBPostPreview({index,post}) {
   const hasMedia = !!post.media;
   const isVid = post.media?.isVideo;
   const thumbUrl = post.media?.preview || (post.media?.source==='url'?post.media.url:null);
+  const [expanded,setExpanded] = useState(false);
 
   const schedTime = post.scheduledAt ? new Date(post.scheduledAt) : null;
-  const timeStr = schedTime ? schedTime.toLocaleDateString('th-TH',{day:'2-digit',month:'short'}) + ' ' + schedTime.toLocaleTimeString('th-TH',{hour:'2-digit',minute:'2-digit'}) : '';
+  const timeStr = schedTime ? schedTime.toLocaleDateString('th-TH',{day:'2-digit',month:'short',year:'numeric'}) + ' เวลา ' + schedTime.toLocaleTimeString('th-TH',{hour:'2-digit',minute:'2-digit'}) : '';
   const isNow = schedTime && (schedTime.getTime() - Date.now() < 60000);
+  const captionShort = post.caption?.length > 150 && !expanded;
 
   return (
-    <div style={{background:'#1A2235',borderRadius:12,border:'1px solid #2A3650',overflow:'hidden'}}>
-      {/* Schedule banner */}
-      <div style={{display:'flex',alignItems:'center',gap:8,padding:'6px 14px',background:isNow?'rgba(239,68,68,0.1)':'rgba(24,119,242,0.06)',borderBottom:'1px solid #2A3650'}}>
-        <span style={{fontSize:14}}>🕐</span>
-        <span style={{fontSize:11,fontWeight:600,color:isNow?'#EF4444':'#1877F2'}}>{isNow?'โพสต์ทันที':timeStr}</span>
-        <span style={{marginLeft:'auto',fontSize:10,padding:'2px 8px',background:isNow?'#EF444422':'#1877F222',color:isNow?'#EF4444':'#1877F2',borderRadius:10,fontWeight:600}}>#{index+1}</span>
+    <div style={{background:'#242526',borderRadius:10,overflow:'hidden',boxShadow:'0 1px 3px rgba(0,0,0,0.3)'}}>
+      {/* Schedule bar */}
+      <div style={{display:'flex',alignItems:'center',gap:8,padding:'8px 16px',background:isNow?'#EF444418':'#1877F212'}}>
+        <span style={{fontSize:12}}>{isNow?'🔴':'🕐'}</span>
+        <span style={{fontSize:12,fontWeight:600,color:isNow?'#EF4444':'#60A5FA'}}>{isNow?'โพสต์ทันที':timeStr}</span>
+        <span style={{marginLeft:'auto',fontSize:11,padding:'2px 10px',background:'rgba(255,255,255,0.08)',borderRadius:12,color:'#A0A0A0',fontWeight:600}}>#{index+1}</span>
       </div>
 
-      {/* Header */}
-      <div style={{display:'flex',alignItems:'center',gap:10,padding:'10px 14px'}}>
-        <div style={{width:36,height:36,borderRadius:'50%',background:'#1877F2',display:'flex',alignItems:'center',justifyContent:'center',color:'white',fontSize:14,fontWeight:700}}>
+      {/* FB Header */}
+      <div style={{display:'flex',alignItems:'center',gap:12,padding:'12px 16px'}}>
+        <div style={{width:44,height:44,borderRadius:'50%',background:'linear-gradient(135deg,#1877F2,#0D5FBB)',display:'flex',alignItems:'center',justifyContent:'center',color:'white',fontSize:18,fontWeight:800,flexShrink:0}}>
           {(post.pageName||'P')[0].toUpperCase()}
         </div>
-        <div style={{flex:1}}>
-          <div style={{fontSize:13,fontWeight:700,color:'#F0F2F5'}}>{post.pageName||'Page'}</div>
-          <div style={{fontSize:10,color:'#5A647A'}}>{timeStr||'ตัวอย่าง'}</div>
+        <div style={{flex:1,minWidth:0}}>
+          <div style={{fontSize:15,fontWeight:700,color:'#E4E6EB'}}>{post.pageName||'Page'}</div>
+          <div style={{display:'flex',alignItems:'center',gap:4,fontSize:12,color:'#B0B3B8'}}>
+            {timeStr||'ตอนนี้'} · <Svg size={12} style={{color:'#B0B3B8'}}><circle cx="12" cy="12" r="10"/><path d="M2 12s4-8 11-8 11 8 11 8"/></Svg>
+          </div>
         </div>
       </div>
 
       {/* Caption */}
-      <div style={{padding:'0 14px 10px',fontSize:13,color:'#C5CAD3',lineHeight:1.6,whiteSpace:'pre-wrap',maxHeight:80,overflow:'hidden'}}>
-        {post.caption}
+      <div style={{padding:'0 16px 12px'}}>
+        <div style={{fontSize:15,color:'#E4E6EB',lineHeight:1.7,whiteSpace:'pre-wrap'}}>
+          {captionShort ? post.caption.slice(0,150)+'...' : post.caption}
+        </div>
+        {post.caption?.length>150&&(
+          <button onClick={()=>setExpanded(!expanded)} style={{background:'none',border:'none',color:'#60A5FA',fontSize:14,fontWeight:600,cursor:'pointer',padding:'4px 0',fontFamily:'inherit'}}>
+            {expanded?'ย่อ':'ดูเพิ่มเติม'}
+          </button>
+        )}
       </div>
 
       {/* Media */}
       {hasMedia&&(
-        <div style={{width:'100%',aspectRatio:'16/9',background:'#0A0E17',position:'relative',overflow:'hidden'}}>
+        <div style={{width:'100%',background:'#18191A',position:'relative'}}>
           {thumbUrl && !isVid ? (
-            <img src={thumbUrl} alt="" style={{width:'100%',height:'100%',objectFit:'cover'}} onError={e=>{e.target.style.display='none';}}/>
+            <img src={thumbUrl} alt="" style={{width:'100%',maxHeight:320,objectFit:'cover',display:'block'}} onError={e=>{e.target.style.display='none';}}/>
           ) : (
-            <div style={{width:'100%',height:'100%',display:'flex',flexDirection:'column',alignItems:'center',justifyContent:'center',gap:6}}>
-              <Svg size={32} style={{color:isVid?'#F59E0B':'#1877F2'}}>{isVid?I.film:I.image}</Svg>
-              <span style={{fontSize:11,color:'#5A647A'}}>{isVid?'วิดีโอ':'รูปภาพ'}</span>
-              {post.media?.fileName&&<span style={{fontSize:10,color:'#5A647A',fontFamily:'monospace'}}>{post.media.fileName}</span>}
-              {post.media?.url&&<span style={{fontSize:10,color:'#5A647A',fontFamily:'monospace',maxWidth:'90%',overflow:'hidden',textOverflow:'ellipsis',whiteSpace:'nowrap'}}>{post.media.url}</span>}
+            <div style={{width:'100%',height:200,display:'flex',flexDirection:'column',alignItems:'center',justifyContent:'center',gap:8}}>
+              <div style={{width:60,height:60,borderRadius:'50%',background:isVid?'rgba(245,158,11,0.15)':'rgba(24,119,242,0.15)',display:'flex',alignItems:'center',justifyContent:'center'}}>
+                <Svg size={28} style={{color:isVid?'#F59E0B':'#60A5FA'}}>{isVid?I.film:I.image}</Svg>
+              </div>
+              <span style={{fontSize:13,color:'#B0B3B8',fontWeight:500}}>{isVid?'วิดีโอ':'รูปภาพ'}</span>
+              {post.media?.fileName&&<span style={{fontSize:11,color:'#6B7280',fontFamily:'monospace'}}>{post.media.fileName}</span>}
+              {post.media?.url&&<span style={{fontSize:11,color:'#6B7280',fontFamily:'monospace',maxWidth:'80%',overflow:'hidden',textOverflow:'ellipsis',whiteSpace:'nowrap'}}>{post.media.url}</span>}
             </div>
           )}
-          <div style={{position:'absolute',top:8,right:8,padding:'2px 8px',background:isVid?'#F59E0BDD':'#1877F2DD',borderRadius:4,fontSize:10,fontWeight:700,color:'white'}}>
+          <div style={{position:'absolute',top:10,right:10,padding:'4px 10px',background:isVid?'rgba(245,158,11,0.9)':'rgba(24,119,242,0.9)',borderRadius:6,fontSize:11,fontWeight:700,color:'white',letterSpacing:0.5}}>
             {isVid?'VIDEO':'IMAGE'}
           </div>
         </div>
       )}
 
-      {/* Fake FB actions */}
-      <div style={{display:'flex',justifyContent:'space-around',padding:'8px 14px',borderTop:'1px solid #2A3650'}}>
+      {/* Reaction counts (fake) */}
+      <div style={{padding:'8px 16px',display:'flex',alignItems:'center',justifyContent:'space-between',borderBottom:'1px solid #3A3B3C'}}>
+        <div style={{display:'flex',alignItems:'center',gap:4}}>
+          <div style={{display:'flex'}}>
+            <span style={{width:20,height:20,borderRadius:'50%',background:'#1877F2',display:'flex',alignItems:'center',justifyContent:'center',fontSize:11,border:'2px solid #242526'}}>👍</span>
+            <span style={{width:20,height:20,borderRadius:'50%',background:'#F0284A',display:'flex',alignItems:'center',justifyContent:'center',fontSize:11,marginLeft:-6,border:'2px solid #242526'}}>❤️</span>
+          </div>
+        </div>
+        <span style={{fontSize:12,color:'#B0B3B8'}}>แสดงความคิดเห็น · แชร์</span>
+      </div>
+
+      {/* Action buttons */}
+      <div style={{display:'grid',gridTemplateColumns:'1fr 1fr 1fr',padding:'4px 8px'}}>
         {[{icon:I.thumbsUp,label:'ถูกใจ'},{icon:I.msgCircle,label:'แสดงความคิดเห็น'},{icon:I.share,label:'แชร์'}].map((a,i)=>(
-          <div key={i} style={{display:'flex',alignItems:'center',gap:4,color:'#5A647A',fontSize:12}}>
-            <Svg size={14}>{a.icon}</Svg>{a.label}
+          <div key={i} style={{display:'flex',alignItems:'center',justifyContent:'center',gap:6,padding:'10px 0',color:'#B0B3B8',fontSize:13,fontWeight:600,borderRadius:6,cursor:'default'}}>
+            <Svg size={18}>{a.icon}</Svg>{a.label}
           </div>
         ))}
       </div>
