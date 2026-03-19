@@ -2,7 +2,7 @@
 // Database Service via Apps Script Web App
 // ==========================================
 
-const SCRIPT_URL = 'https://script.google.com/macros/s/AKfycby-tEFbr_QfiiGP7EVtERH8XTbtsKqxsgVOkFUQL34aiS8ZEiAMs07WaMQTfQgLGsuTXw/exec';
+const SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbzHreAFG2QlrB2e0Wn1fi_SoYUMYRHYCXuJIEVPam6ni4gZig6PiSnt33hkgqI8MsV-/exec';
 
 class SheetDB {
 
