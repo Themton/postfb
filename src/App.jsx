@@ -190,7 +190,7 @@ export default function App() {
           {[
             { id: 'dashboard', icon: I.dashboard, label: 'แดชบอร์ด' },
             { id: 'posts', icon: I.post, label: 'สร้างโพสต์' },
-            { id: 'groups', icon: I.group, label: 'กลุ่มสินค้า' },
+            { id: 'groups', icon: I.group, label: 'เพจ' },
             { id: 'captions', icon: I.caption, label: 'แคปชั่น' },
             { id: 'media', icon: I.media, label: 'สื่อ / Media' },
             { id: 'settings', icon: I.settings, label: 'ตั้งค่า' },
@@ -289,7 +289,7 @@ function DashboardPage({ groups, captions, allMedia, activity, onRefresh }) {
       <div style={S.pageHeader}><h1 style={S.pageTitle}>แดชบอร์ด</h1><button style={S.btnSecondary} onClick={onRefresh}><Svg size={16}>{I.refresh}</Svg> รีเฟรช</button></div>
       <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4,1fr)', gap: 14, marginBottom: 24 }}>
         {[
-          { label: 'กลุ่มสินค้า', value: groups.length, color: '#1877F2', bg: 'rgba(24,119,242,0.1)', icon: I.group },
+          { label: 'เพจ', value: groups.filter(g=>g.pageId).length, color: '#1877F2', bg: 'rgba(24,119,242,0.1)', icon: I.group },
           { label: 'แคปชั่น', value: captions.length, color: '#10B981', bg: 'rgba(16,185,129,0.1)', icon: I.caption },
           { label: 'สื่อทั้งหมด', value: allMedia.length, color: '#8B5CF6', bg: 'rgba(139,92,246,0.1)', icon: I.media },
           { label: 'โพสต์', value: activity.filter(a => a.action === 'bulk_post').length, color: '#F59E0B', bg: 'rgba(245,158,11,0.1)', icon: I.pulse },
@@ -619,7 +619,7 @@ function PostsPage({ groups, captions, allMedia, config, isPosting, postProgress
       <div style={{ display: 'grid', gridTemplateColumns: '1fr 300px', gap: 20 }}>
         <div style={S.card}>
           <h3 style={S.cardTitle}>ตั้งค่าการโพสต์</h3>
-          <label style={S.label}>เลือกกลุ่มสินค้า</label>
+          <label style={S.label}>เลือกกรุ๊ปเพจ</label>
           <select style={S.input} value={selectedGroup} onChange={e => setSelectedGroup(e.target.value)}>
             <option value="">-- เลือกกลุ่ม --</option>
             {groups.map(g => <option key={g.id} value={g.id}>{g.name} ({g.pageName || g.pageId})</option>)}
@@ -711,63 +711,254 @@ function PostsPage({ groups, captions, allMedia, config, isPosting, postProgress
 
 // ==================== GROUPS PAGE ====================
 function GroupsPage({ groups, fbPages, loadingPages, onFetchPages, onSave, showToast }) {
-  const [editing, setEditing] = useState(null);
-  const [form, setForm] = useState({ name: '', pageId: '', pageName: '', pageToken: '', color: '#1877F2' });
-  const [showForm, setShowForm] = useState(false);
+  const [newGroupName, setNewGroupName] = useState('');
+  const [pageForm, setPageForm] = useState({ groupName: 'Default', pageId: '', pageToken: '' });
+  const [loadingPage, setLoadingPage] = useState(false);
 
-  function selectFbPage(p) { setForm(f => ({ ...f, pageId: p.id, pageName: p.name, pageToken: p.accessToken })); showToast(`เลือก: ${p.name}`, 'success'); }
-  async function handleSave() {
-    if (!form.name || !form.pageId || !form.pageToken) { showToast('กรอกข้อมูลให้ครบ', 'error'); return; }
-    let pageName = form.pageName;
-    if (!pageName) { try { const info = await facebookAPI.getPageInfo(form.pageId, form.pageToken); pageName = info.name; } catch { } }
-    const updated = editing ? groups.map(g => g.id === editing ? { ...g, ...form, pageName } : g) : [...groups, { ...form, pageName, id: uid(), createdAt: now() }];
-    await onSave(updated); setShowForm(false);
+  // Derive unique group names from existing groups
+  const groupNames = ['Default', ...new Set(groups.map(g => g.name).filter(n => n && n !== 'Default'))];
+
+  function addGroup() {
+    const name = newGroupName.trim();
+    if (!name) { showToast('กรุณาใส่ชื่อกรุ๊ป', 'error'); return; }
+    if (groupNames.includes(name)) { showToast('ชื่อกรุ๊ปซ้ำ', 'error'); return; }
+    // Add a placeholder group entry so the name persists
+    const updated = [...groups, { id: uid(), name, pageId: '', pageName: '', pageToken: '', color: GROUP_COLORS[groupNames.length % GROUP_COLORS.length], createdAt: now() }];
+    onSave(updated);
+    setNewGroupName('');
+    showToast(`เพิ่มกรุ๊ป "${name}" สำเร็จ`, 'success');
   }
 
+  function deleteGroup(name) {
+    if (name === 'Default') return;
+    if (!confirm(`ลบกรุ๊ป "${name}" และเพจทั้งหมดในกรุ๊ปนี้?`)) return;
+    onSave(groups.filter(g => g.name !== name));
+    showToast(`ลบกรุ๊ป "${name}" แล้ว`, 'info');
+  }
+
+  async function addPage() {
+    if (!pageForm.pageId.trim() || !pageForm.pageToken.trim()) {
+      showToast('กรุณาใส่ Page ID และ Token', 'error'); return;
+    }
+    // Check duplicate
+    if (groups.some(g => g.pageId === pageForm.pageId.trim() && g.name === pageForm.groupName)) {
+      showToast('เพจนี้มีอยู่ในกรุ๊ปแล้ว', 'error'); return;
+    }
+
+    setLoadingPage(true);
+    let pageName = '';
+    try {
+      const info = await facebookAPI.getPageInfo(pageForm.pageId.trim(), pageForm.pageToken.trim());
+      pageName = info.name || '';
+      showToast(`พบเพจ: ${pageName}`, 'success');
+    } catch (e) {
+      showToast('ดึงชื่อเพจไม่ได้ — เพิ่มเพจต่อ', 'info');
+    }
+
+    const colorIdx = groupNames.indexOf(pageForm.groupName);
+    const newPage = {
+      id: uid(),
+      name: pageForm.groupName,
+      pageId: pageForm.pageId.trim(),
+      pageName,
+      pageToken: pageForm.pageToken.trim(),
+      color: GROUP_COLORS[colorIdx >= 0 ? colorIdx % GROUP_COLORS.length : 0],
+      createdAt: now()
+    };
+
+    // Remove placeholder entry (empty pageId) for this group if exists
+    const cleaned = groups.filter(g => !(g.name === pageForm.groupName && !g.pageId));
+    await onSave([...cleaned, newPage]);
+    setPageForm(f => ({ ...f, pageId: '', pageToken: '' }));
+    setLoadingPage(false);
+  }
+
+  function deletePage(id) {
+    if (!confirm('ลบเพจนี้?')) return;
+    onSave(groups.filter(g => g.id !== id));
+  }
+
+  // Pages with actual pageId (not placeholders)
+  const actualPages = groups.filter(g => g.pageId);
+
   return (
-    <div><div style={S.pageHeader}><h1 style={S.pageTitle}>กลุ่มสินค้า</h1><button style={S.btnPrimary} onClick={() => { setEditing(null); setForm({ name: '', pageId: '', pageName: '', pageToken: '', color: '#1877F2' }); setShowForm(true); }}><Svg size={16}>{I.post}</Svg> เพิ่มกลุ่ม</button></div>
-      {showForm && (
-        <div style={{ ...S.card, marginBottom: 20, border: '1px solid #1877F2' }}>
-          <h3 style={{ fontSize: 15, fontWeight: 700, marginBottom: 14 }}>{editing ? 'แก้ไข' : 'สร้างกลุ่มใหม่'}</h3>
-          <div style={{ marginBottom: 14, padding: 14, background: '#0A0E17', borderRadius: 10, border: '1px solid #2A3650' }}>
-            <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 10 }}>
-              <span style={{ fontSize: 12, fontWeight: 700, color: '#1877F2', display: 'flex', alignItems: 'center', gap: 6 }}><Svg size={16}>{I.facebook}</Svg> ดึงเพจอัตโนมัติ</span>
-              <button style={{ ...S.btnSmall, background: '#1877F2' }} onClick={onFetchPages} disabled={loadingPages}>{loadingPages ? 'โหลด...' : '⟳ โหลดเพจ'}</button>
-            </div>
-            {fbPages.length > 0 && <div style={{ display: 'flex', flexDirection: 'column', gap: 6, maxHeight: 200, overflowY: 'auto' }}>
-              {fbPages.map(p => (
-                <div key={p.id} onClick={() => selectFbPage(p)} style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '8px 12px', background: form.pageId === p.id ? 'rgba(24,119,242,0.15)' : '#111827', border: `1px solid ${form.pageId === p.id ? '#1877F2' : '#2A3650'}`, borderRadius: 8, cursor: 'pointer' }}>
-                  {p.picture && <img src={p.picture} alt="" style={{ width: 36, height: 36, borderRadius: 8 }} />}
-                  <div style={{ flex: 1 }}><div style={{ fontSize: 13, fontWeight: 600 }}>{p.name}</div><div style={{ fontSize: 11, color: '#5A647A' }}>{p.category} · {p.fans?.toLocaleString()} fans</div></div>
-                  {form.pageId === p.id && <Svg size={18} style={{ color: '#10B981' }}>{I.check}</Svg>}
-                </div>))}
-            </div>}
-            {fbPages.length === 0 && !loadingPages && <p style={{ fontSize: 12, color: '#5A647A' }}>คลิก "โหลดเพจ" (ตั้งค่า Facebook Token ที่เมนู "ตั้งค่า")</p>}
-          </div>
-          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12 }}>
-            <div><label style={S.label}>ชื่อกลุ่ม</label><input style={S.input} value={form.name} onChange={e => setForm(f => ({ ...f, name: e.target.value }))} placeholder="เช่น เสื้อผ้า" /></div>
-            <div><label style={S.label}>Page ID</label><input style={S.input} value={form.pageId} onChange={e => setForm(f => ({ ...f, pageId: e.target.value }))} /></div>
-            <div><label style={S.label}>ชื่อเพจ (อัตโนมัติ)</label><input style={S.input} value={form.pageName} onChange={e => setForm(f => ({ ...f, pageName: e.target.value }))} /></div>
-            <div><label style={S.label}>Page Access Token</label><input style={S.input} type="password" value={form.pageToken} onChange={e => setForm(f => ({ ...f, pageToken: e.target.value }))} /></div>
-          </div>
-          <div style={{ marginTop: 12 }}><label style={S.label}>สีกลุ่ม</label>
-            <div style={{ display: 'flex', gap: 8 }}>{GROUP_COLORS.map(c => (<div key={c} onClick={() => setForm(f => ({ ...f, color: c }))} style={{ width: 28, height: 28, borderRadius: '50%', background: c, cursor: 'pointer', border: form.color === c ? '3px solid #F0F2F5' : '3px solid transparent', boxShadow: form.color === c ? `0 0 0 2px ${c}` : 'none' }} />))}</div>
-          </div>
-          <div style={{ display: 'flex', gap: 10, marginTop: 14 }}><button style={S.btnPrimary} onClick={handleSave}><Svg size={16}>{I.save}</Svg> บันทึก</button><button style={S.btnSecondary} onClick={() => setShowForm(false)}>ยกเลิก</button></div>
+    <div>
+      <div style={S.pageHeader}><h1 style={S.pageTitle}>เพจ</h1></div>
+
+      {/* Token Warning */}
+      <div style={{ padding: '12px 18px', background: 'rgba(245,158,11,0.08)', border: '1px solid rgba(245,158,11,0.25)', borderRadius: 10, marginBottom: 16, display: 'flex', alignItems: 'center', gap: 8 }}>
+        <span style={{ color: '#F59E0B', fontSize: 16 }}>⚠</span>
+        <span style={{ fontSize: 13, color: '#F59E0B' }}>Token ต้องมีสิทธิ์: <strong>pages_manage_posts</strong> + <strong>pages_show_list</strong></span>
+      </div>
+
+      {/* ======= Section 1: กรุ๊ปเพจ ======= */}
+      <div style={{ ...S.card, marginBottom: 16, borderLeft: '3px solid #10B981' }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 16 }}>
+          <span style={{ fontSize: 22 }}>📁</span>
+          <h3 style={{ fontSize: 16, fontWeight: 700, margin: 0 }}>กรุ๊ปเพจ</h3>
         </div>
-      )}
-      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill,minmax(340px,1fr))', gap: 12 }}>
-        {groups.map(g => (
-          <div key={g.id} style={{ ...S.card, padding: 16, display: 'flex', alignItems: 'center', gap: 14 }}>
-            <div style={{ width: 48, height: 48, borderRadius: 12, background: g.color + '22', display: 'flex', alignItems: 'center', justifyContent: 'center' }}><Svg size={22} style={{ color: g.color }}>{I.group}</Svg></div>
-            <div style={{ flex: 1 }}><div style={{ fontSize: 15, fontWeight: 700 }}>{g.name}</div><div style={{ fontSize: 12, color: '#1877F2' }}>{g.pageName || '-'}</div><div style={{ fontSize: 11, color: '#5A647A', fontFamily: 'monospace' }}>ID: {g.pageId}</div></div>
-            <div style={{ display: 'flex', gap: 6 }}>
-              <button style={S.iconBtn} onClick={() => { setEditing(g.id); setForm({ name: g.name, pageId: g.pageId, pageName: g.pageName, pageToken: g.pageToken, color: g.color }); setShowForm(true); }}><Svg size={14}>{I.edit}</Svg></button>
-              <button style={{ ...S.iconBtn, borderColor: '#EF4444' }} onClick={() => { if (confirm('ลบ?')) onSave(groups.filter(x => x.id !== g.id)); }}><Svg size={14} style={{ color: '#EF4444' }}>{I.trash}</Svg></button>
+
+        <div style={{ display: 'flex', gap: 10, marginBottom: 16 }}>
+          <input
+            style={{ ...S.input, flex: 1 }}
+            value={newGroupName}
+            onChange={e => setNewGroupName(e.target.value)}
+            onKeyDown={e => e.key === 'Enter' && addGroup()}
+            placeholder="ชื่อกรุ๊ปใหม่"
+          />
+          <button style={{ ...S.btnPrimary, background: '#10B981', padding: '10px 28px', whiteSpace: 'nowrap', fontSize: 14 }} onClick={addGroup}>
+            + เพิ่มกรุ๊ป
+          </button>
+        </div>
+
+        <div style={{ display: 'flex', flexWrap: 'wrap', gap: 8 }}>
+          {groupNames.map((name, i) => (
+            <div key={name} style={{
+              display: 'inline-flex', alignItems: 'center', gap: 6,
+              padding: '6px 14px', borderRadius: 20,
+              background: 'rgba(139,92,246,0.12)', border: '1px solid rgba(139,92,246,0.3)',
+              fontSize: 13, fontWeight: 600, color: '#C4B5FD'
+            }}>
+              {name}
+              {name !== 'Default' && (
+                <button onClick={() => deleteGroup(name)} style={{
+                  width: 18, height: 18, borderRadius: '50%', border: 'none',
+                  background: 'rgba(239,68,68,0.3)', color: '#F87171',
+                  fontSize: 13, cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', lineHeight: 1
+                }}>×</button>
+              )}
+            </div>
+          ))}
+        </div>
+      </div>
+
+      {/* ======= Section 2: เพิ่มเพจ ======= */}
+      <div style={{ ...S.card, marginBottom: 16, borderLeft: '3px solid #1877F2' }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 16 }}>
+          <span style={{ fontSize: 22 }}>➕</span>
+          <h3 style={{ fontSize: 16, fontWeight: 700, margin: 0 }}>เพิ่มเพจ</h3>
+        </div>
+
+        <div style={{ marginBottom: 14 }}>
+          <label style={S.label}>กรุ๊ป</label>
+          <select style={S.input} value={pageForm.groupName} onChange={e => setPageForm(f => ({ ...f, groupName: e.target.value }))}>
+            {groupNames.map(n => <option key={n} value={n}>{n}</option>)}
+          </select>
+        </div>
+
+        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 14, marginBottom: 16 }}>
+          <div>
+            <label style={S.label}>Page ID</label>
+            <input style={S.input} value={pageForm.pageId} onChange={e => setPageForm(f => ({ ...f, pageId: e.target.value }))} placeholder="123456789012345" />
+          </div>
+          <div>
+            <label style={S.label}>Page Token</label>
+            <input style={S.input} type="password" value={pageForm.pageToken} onChange={e => setPageForm(f => ({ ...f, pageToken: e.target.value }))} placeholder="วาง Token" />
+          </div>
+        </div>
+
+        <button
+          style={{ ...S.btnPrimary, width: '100%', padding: '14px', fontSize: 15, opacity: loadingPage ? 0.6 : 1 }}
+          onClick={addPage}
+          disabled={loadingPage}
+        >
+          {loadingPage ? '⏳ กำลังตรวจสอบเพจ...' : '✅ เพิ่มเพจ'}
+        </button>
+      </div>
+
+      {/* ======= Section 3: รายการเพจ ======= */}
+      <div style={S.card}>
+        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 16 }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+            <span style={{ fontSize: 22 }}>📋</span>
+            <h3 style={{ fontSize: 16, fontWeight: 700, margin: 0 }}>รายการเพจ</h3>
+            <span style={{ padding: '2px 10px', background: '#1877F2', borderRadius: 20, fontSize: 12, fontWeight: 700, color: 'white' }}>{actualPages.length}</span>
+          </div>
+          {fbPages.length === 0 && (
+            <button style={{ ...S.btnSmall, background: '#1877F2' }} onClick={onFetchPages} disabled={loadingPages}>
+              {loadingPages ? '⏳ โหลด...' : '🔄 ดึงเพจอัตโนมัติ'}
+            </button>
+          )}
+        </div>
+
+        {/* Auto-fetched pages suggestion */}
+        {fbPages.length > 0 && (
+          <div style={{ marginBottom: 16, padding: 14, background: '#0A0E17', borderRadius: 10, border: '1px solid rgba(24,119,242,0.3)' }}>
+            <div style={{ fontSize: 12, color: '#1877F2', fontWeight: 600, marginBottom: 8 }}>🔍 เพจที่พบ (คลิกเพื่อเพิ่ม)</div>
+            <div style={{ display: 'flex', flexDirection: 'column', gap: 6, maxHeight: 180, overflowY: 'auto' }}>
+              {fbPages.map(p => {
+                const alreadyAdded = groups.some(g => g.pageId === p.id);
+                return (
+                  <div key={p.id} onClick={() => {
+                    if (alreadyAdded) return;
+                    setPageForm(f => ({ ...f, pageId: p.id, pageToken: p.accessToken }));
+                    showToast(`เลือก: ${p.name} — กด "เพิ่มเพจ" เพื่อบันทึก`, 'success');
+                  }}
+                  style={{
+                    display: 'flex', alignItems: 'center', gap: 10, padding: '8px 12px',
+                    background: alreadyAdded ? 'rgba(16,185,129,0.08)' : '#111827',
+                    border: `1px solid ${alreadyAdded ? 'rgba(16,185,129,0.3)' : '#2A3650'}`,
+                    borderRadius: 8, cursor: alreadyAdded ? 'default' : 'pointer', opacity: alreadyAdded ? 0.6 : 1
+                  }}>
+                    {p.picture && <img src={p.picture} alt="" style={{ width: 32, height: 32, borderRadius: 6 }} />}
+                    <div style={{ flex: 1 }}>
+                      <div style={{ fontSize: 13, fontWeight: 600 }}>{p.name}</div>
+                      <div style={{ fontSize: 11, color: '#5A647A' }}>{p.category} · {p.fans?.toLocaleString()} fans</div>
+                    </div>
+                    {alreadyAdded ? (
+                      <span style={{ fontSize: 11, color: '#10B981', fontWeight: 600 }}>✓ เพิ่มแล้ว</span>
+                    ) : (
+                      <span style={{ fontSize: 11, color: '#1877F2', fontWeight: 600 }}>+ เลือก</span>
+                    )}
+                  </div>
+                );
+              })}
             </div>
           </div>
-        ))}
-        {groups.length === 0 && <div style={{ ...S.card, textAlign: 'center', padding: 40, gridColumn: '1/-1' }}><Svg size={48} style={{ color: '#2A3650' }}>{I.group}</Svg><p style={{ color: '#5A647A', marginTop: 12 }}>ยังไม่มีกลุ่ม</p></div>}
+        )}
+
+        {/* Pages list grouped */}
+        {groupNames.map(gName => {
+          const pagesInGroup = actualPages.filter(g => g.name === gName);
+          if (pagesInGroup.length === 0) return null;
+          return (
+            <div key={gName} style={{ marginBottom: 16 }}>
+              <div style={{ fontSize: 12, fontWeight: 700, color: '#8B5CF6', marginBottom: 8, display: 'flex', alignItems: 'center', gap: 6 }}>
+                📁 {gName}
+                <span style={{ padding: '1px 8px', background: '#8B5CF622', borderRadius: 10, fontSize: 11 }}>{pagesInGroup.length}</span>
+              </div>
+              <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
+                {pagesInGroup.map(p => (
+                  <div key={p.id} style={{
+                    display: 'flex', alignItems: 'center', gap: 12, padding: '10px 14px',
+                    background: '#0A0E17', borderRadius: 10, border: '1px solid #2A3650'
+                  }}>
+                    <div style={{ width: 40, height: 40, borderRadius: 10, background: (p.color || '#1877F2') + '22', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                      <Svg size={18} style={{ color: p.color || '#1877F2' }}>{I.facebook}</Svg>
+                    </div>
+                    <div style={{ flex: 1 }}>
+                      <div style={{ fontSize: 14, fontWeight: 600 }}>{p.pageName || 'ไม่ทราบชื่อเพจ'}</div>
+                      <div style={{ fontSize: 11, color: '#5A647A', fontFamily: "'JetBrains Mono',monospace" }}>ID: {p.pageId}</div>
+                    </div>
+                    <div style={{ fontSize: 11, color: '#10B981', display: 'flex', alignItems: 'center', gap: 4 }}>
+                      <Svg size={14}>{I.check}</Svg> เชื่อมต่อ
+                    </div>
+                    <button style={{ ...S.iconBtn, borderColor: '#EF4444' }} onClick={() => deletePage(p.id)}>
+                      <Svg size={14} style={{ color: '#EF4444' }}>{I.trash}</Svg>
+                    </button>
+                  </div>
+                ))}
+              </div>
+            </div>
+          );
+        })}
+
+        {actualPages.length === 0 && (
+          <div style={{ textAlign: 'center', padding: 30, color: '#5A647A' }}>
+            <Svg size={40} style={{ color: '#2A3650', marginBottom: 8 }}>{I.facebook}</Svg>
+            <p>ยังไม่มีเพจ — เพิ่มเพจด้านบนหรือกด "ดึงเพจอัตโนมัติ"</p>
+          </div>
+        )}
       </div>
     </div>
   );
