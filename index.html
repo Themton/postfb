@@ -1,14 +1,1055 @@
 <!DOCTYPE html>
 <html lang="th">
 <head>
-  <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>FB Bulk Poster Pro</title>
-  <link rel="icon" type="image/svg+xml" href="data:image/svg+xml,%3Csvg viewBox='0 0 32 32' xmlns='http://www.w3.org/2000/svg'%3E%3Crect width='32' height='32' rx='8' fill='%231877F2'/%3E%3Cpath d='M22 16.5h-4V21h-3v-4.5h-4v-3h4V9h3v4.5h4z' fill='white'/%3E%3C/svg%3E" />
-  <link href="https://fonts.googleapis.com/css2?family=Sarabun:wght@300;400;500;600;700;800&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>FB Bulk Poster Pro</title>
+<link href="https://fonts.googleapis.com/css2?family=Kanit:wght@300;400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+<style>
+:root {
+  --bg: #08090d;
+  --surface: #0f1117;
+  --surface-2: #161822;
+  --surface-3: #1c1f2e;
+  --border: #262940;
+  --border-h: #3a3f5c;
+  --text: #e4e6f0;
+  --text-2: #9498b4;
+  --text-3: #5c6080;
+  --blue: #5b8af5;
+  --blue-2: #3d6ce0;
+  --blue-bg: rgba(91,138,245,0.1);
+  --green: #3dd68c;
+  --green-bg: rgba(61,214,140,0.1);
+  --orange: #f5a623;
+  --orange-bg: rgba(245,166,35,0.08);
+  --red: #ef6060;
+  --red-bg: rgba(239,96,96,0.1);
+  --pink: #e570c0;
+  --radius: 10px;
+  --radius-lg: 16px;
+}
+* { margin:0; padding:0; box-sizing:border-box; }
+body { font-family:'Kanit',sans-serif; background:var(--bg); color:var(--text); min-height:100vh; }
+code,.mono { font-family:'JetBrains Mono',monospace; }
+::-webkit-scrollbar { width:6px; }
+::-webkit-scrollbar-track { background:transparent; }
+::-webkit-scrollbar-thumb { background:var(--border); border-radius:3px; }
+input,textarea,select,button { font-family:inherit; }
+
+/* Layout */
+.app { max-width:1200px; margin:0 auto; padding:16px; }
+
+/* Header */
+.header {
+  display:flex; align-items:center; justify-content:space-between;
+  padding:16px 0; margin-bottom:20px;
+  border-bottom:1px solid var(--border);
+}
+.logo { display:flex; align-items:center; gap:10px; }
+.logo-icon {
+  width:38px; height:38px; border-radius:10px;
+  background:linear-gradient(135deg,#5b8af5,#e570c0);
+  display:flex; align-items:center; justify-content:center;
+  font-size:18px; font-weight:700; color:#fff;
+}
+.logo h1 { font-size:20px; font-weight:600; letter-spacing:-0.5px; }
+.logo span { font-size:11px; color:var(--text-3); font-weight:300; display:block; margin-top:-2px; }
+
+/* Connection bar */
+.conn-bar {
+  display:flex; gap:8px; flex-wrap:wrap;
+  padding:14px 16px;
+  background:var(--surface);
+  border:1px solid var(--border);
+  border-radius:var(--radius-lg);
+  margin-bottom:16px;
+  animation:fadeIn .4s ease;
+}
+.conn-group {
+  flex:1; min-width:200px;
+  display:flex; flex-direction:column; gap:4px;
+}
+.conn-group label {
+  font-size:11px; font-weight:500; color:var(--text-3);
+  text-transform:uppercase; letter-spacing:0.5px;
+}
+.conn-group input {
+  background:var(--surface-2); border:1px solid var(--border);
+  border-radius:6px; padding:8px 10px; color:var(--text);
+  font-size:13px; outline:none; width:100%;
+  transition:border-color .2s;
+}
+.conn-group input:focus { border-color:var(--blue); }
+.conn-group input::placeholder { color:var(--text-3); }
+.btn-connect {
+  align-self:flex-end;
+  padding:8px 20px; border:none; border-radius:6px;
+  background:var(--blue); color:#fff;
+  font-size:13px; font-weight:500; cursor:pointer;
+  transition:background .2s, transform .1s;
+  white-space:nowrap; min-width:100px;
+}
+.btn-connect:hover { background:var(--blue-2); }
+.btn-connect:active { transform:scale(.97); }
+.btn-connect.connected { background:var(--green); }
+
+/* Status */
+.status-bar {
+  display:flex; gap:8px; margin-bottom:16px; flex-wrap:wrap;
+}
+.status-chip {
+  display:flex; align-items:center; gap:6px;
+  padding:6px 14px; border-radius:100px;
+  font-size:12px; font-weight:400;
+  border:1px solid var(--border);
+  background:var(--surface);
+}
+.status-chip .dot {
+  width:7px; height:7px; border-radius:50%;
+}
+.dot-on { background:var(--green); box-shadow:0 0 6px var(--green); }
+.dot-off { background:var(--red); }
+
+/* Tabs */
+.tabs {
+  display:flex; gap:2px;
+  background:var(--surface);
+  border-radius:var(--radius);
+  padding:3px;
+  margin-bottom:16px;
+  border:1px solid var(--border);
+}
+.tab {
+  flex:1; padding:10px 0;
+  text-align:center; font-size:13px; font-weight:500;
+  color:var(--text-2); background:transparent;
+  border:none; border-radius:8px; cursor:pointer;
+  transition:all .2s;
+}
+.tab:hover { color:var(--text); }
+.tab.active { background:var(--blue); color:#fff; }
+
+/* Panel */
+.panel { display:none; animation:fadeIn .3s ease; }
+.panel.active { display:block; }
+
+/* Table */
+.table-wrap {
+  background:var(--surface);
+  border:1px solid var(--border);
+  border-radius:var(--radius-lg);
+  overflow:hidden;
+}
+.table-header {
+  display:flex; align-items:center; justify-content:space-between;
+  padding:14px 16px;
+  border-bottom:1px solid var(--border);
+}
+.table-header h3 { font-size:14px; font-weight:500; }
+.table-actions { display:flex; gap:6px; }
+table {
+  width:100%; border-collapse:collapse; font-size:13px;
+}
+thead th {
+  padding:10px 14px; text-align:left;
+  font-size:11px; font-weight:600; color:var(--text-3);
+  text-transform:uppercase; letter-spacing:0.5px;
+  background:var(--surface-2);
+  border-bottom:1px solid var(--border);
+  position:sticky; top:0;
+}
+tbody td {
+  padding:10px 14px; border-bottom:1px solid var(--border);
+  vertical-align:middle;
+  max-width:250px; overflow:hidden; text-overflow:ellipsis; white-space:nowrap;
+}
+tbody tr:hover { background:var(--surface-2); }
+tbody tr:last-child td { border-bottom:none; }
+.badge {
+  display:inline-flex; align-items:center; gap:4px;
+  padding:3px 10px; border-radius:100px;
+  font-size:11px; font-weight:500;
+}
+.badge-pending { background:var(--orange-bg); color:var(--orange); }
+.badge-posted { background:var(--green-bg); color:var(--green); }
+.badge-error { background:var(--red-bg); color:var(--red); }
+.badge-delete { background:var(--red-bg); color:var(--red); }
+.badge-album { background:var(--blue-bg); color:var(--blue); }
+.link-shopee {
+  color:var(--orange); text-decoration:none;
+  font-size:12px;
+}
+.link-shopee:hover { text-decoration:underline; }
+
+/* Buttons */
+.btn {
+  padding:7px 14px; border:1px solid var(--border);
+  border-radius:6px; background:var(--surface-2);
+  color:var(--text); font-size:12px; font-weight:500;
+  cursor:pointer; transition:all .15s;
+  display:inline-flex; align-items:center; gap:5px;
+}
+.btn:hover { border-color:var(--border-h); background:var(--surface-3); }
+.btn:active { transform:scale(.97); }
+.btn-primary { background:var(--blue); border-color:var(--blue); color:#fff; }
+.btn-primary:hover { background:var(--blue-2); }
+.btn-danger { background:var(--red-bg); border-color:rgba(239,96,96,.3); color:var(--red); }
+.btn-danger:hover { background:rgba(239,96,96,.2); }
+.btn-success { background:var(--green-bg); border-color:rgba(61,214,140,.3); color:var(--green); }
+.btn-sm { padding:5px 10px; font-size:11px; }
+
+/* Add Post Form */
+.add-form {
+  background:var(--surface);
+  border:1px solid var(--border);
+  border-radius:var(--radius-lg);
+  padding:20px;
+  margin-bottom:16px;
+}
+.add-form h3 { font-size:14px; font-weight:500; margin-bottom:14px; }
+.form-grid {
+  display:grid;
+  grid-template-columns:1fr 1fr;
+  gap:12px;
+}
+.form-group { display:flex; flex-direction:column; gap:4px; }
+.form-group.full { grid-column:1/-1; }
+.form-group label {
+  font-size:11px; font-weight:500; color:var(--text-3);
+  text-transform:uppercase; letter-spacing:0.5px;
+}
+.form-group input,
+.form-group textarea,
+.form-group select {
+  background:var(--surface-2); border:1px solid var(--border);
+  border-radius:6px; padding:9px 12px; color:var(--text);
+  font-size:13px; outline:none; resize:vertical;
+  transition:border-color .2s;
+}
+.form-group input:focus,
+.form-group textarea:focus,
+.form-group select:focus { border-color:var(--blue); }
+.form-group select option { background:var(--surface-2); }
+.form-footer {
+  display:flex; justify-content:flex-end; gap:8px;
+  margin-top:14px;
+}
+
+/* Albums */
+.album-grid {
+  display:grid; grid-template-columns:repeat(auto-fill,minmax(260px,1fr));
+  gap:12px; margin-top:12px;
+}
+.album-card {
+  background:var(--surface-2);
+  border:1px solid var(--border);
+  border-radius:var(--radius);
+  padding:16px;
+  cursor:pointer;
+  transition:all .2s;
+  position:relative;
+}
+.album-card:hover { border-color:var(--blue); transform:translateY(-2px); }
+.album-card.selected { border-color:var(--blue); background:var(--blue-bg); }
+.album-card h4 { font-size:14px; font-weight:500; margin-bottom:4px; }
+.album-card p { font-size:12px; color:var(--text-3); }
+.album-card .album-id {
+  font-family:'JetBrains Mono',monospace;
+  font-size:10px; color:var(--text-3);
+  margin-top:6px;
+}
+.album-card .album-count {
+  position:absolute; top:12px; right:12px;
+  background:var(--surface-3);
+  padding:2px 8px; border-radius:100px;
+  font-size:11px; color:var(--text-2);
+}
+
+/* Create Album */
+.create-album-form {
+  display:flex; gap:8px; align-items:flex-end;
+  margin-top:12px; padding:14px;
+  background:var(--surface);
+  border:1px solid var(--border);
+  border-radius:var(--radius);
+}
+
+/* Log */
+.log-area {
+  background:var(--surface);
+  border:1px solid var(--border);
+  border-radius:var(--radius-lg);
+  padding:16px; margin-top:16px;
+}
+.log-area h3 { font-size:13px; font-weight:500; margin-bottom:10px; display:flex; align-items:center; gap:6px; }
+#logBox {
+  background:var(--surface-2);
+  border:1px solid var(--border);
+  border-radius:8px;
+  padding:12px;
+  font-family:'JetBrains Mono',monospace;
+  font-size:12px;
+  line-height:1.8;
+  max-height:300px;
+  overflow-y:auto;
+  color:var(--text-2);
+}
+.log-ok { color:var(--green); }
+.log-err { color:var(--red); }
+.log-info { color:var(--blue); }
+.log-warn { color:var(--orange); }
+
+/* Toast */
+.toast-container { position:fixed; top:20px; right:20px; z-index:9999; display:flex; flex-direction:column; gap:8px; }
+.toast {
+  padding:12px 18px;
+  border-radius:8px;
+  font-size:13px; font-weight:400;
+  color:#fff;
+  box-shadow:0 8px 30px rgba(0,0,0,.4);
+  animation:slideIn .3s ease;
+  max-width:360px;
+}
+.toast-success { background:linear-gradient(135deg,#2d8c5a,#3dd68c22); border:1px solid rgba(61,214,140,.3); }
+.toast-error { background:linear-gradient(135deg,#8c2d2d,#ef606022); border:1px solid rgba(239,96,96,.3); }
+.toast-info { background:linear-gradient(135deg,#2d4a8c,#5b8af522); border:1px solid rgba(91,138,245,.3); }
+
+/* Empty state */
+.empty {
+  text-align:center; padding:50px 20px;
+  color:var(--text-3);
+}
+.empty .empty-icon { font-size:40px; margin-bottom:10px; opacity:.5; }
+.empty p { font-size:14px; }
+
+/* Checkbox */
+.check-all { cursor:pointer; width:16px; height:16px; accent-color:var(--blue); }
+.row-check { cursor:pointer; width:15px; height:15px; accent-color:var(--blue); }
+
+/* Responsive */
+@media(max-width:768px) {
+  .form-grid { grid-template-columns:1fr; }
+  .conn-bar { flex-direction:column; }
+  .header { flex-direction:column; gap:8px; }
+  .table-wrap { overflow-x:auto; }
+  table { min-width:700px; }
+}
+
+/* Animations */
+@keyframes fadeIn { from{opacity:0;transform:translateY(8px)} to{opacity:1;transform:translateY(0)} }
+@keyframes slideIn { from{opacity:0;transform:translateX(30px)} to{opacity:1;transform:translateX(0)} }
+@keyframes spin { to{transform:rotate(360deg)} }
+.spinner { display:inline-block; width:14px; height:14px; border:2px solid rgba(255,255,255,.3); border-top-color:#fff; border-radius:50%; animation:spin .6s linear infinite; }
+</style>
 </head>
 <body>
-  <div id="root"></div>
-  <script type="module" src="/src/main.jsx"></script>
+<div class="app">
+
+  <!-- Header -->
+  <div class="header">
+    <div class="logo">
+      <div class="logo-icon">FB</div>
+      <div>
+        <h1>FB Bulk Poster Pro</h1>
+        <span>โพสต์ Facebook อัตโนมัติ + อัลบั้ม + Shopee</span>
+      </div>
+    </div>
+    <div style="display:flex;gap:6px;">
+      <button class="btn" onclick="exportConfig()">💾 บันทึกค่า</button>
+      <button class="btn" onclick="importConfig()">📂 โหลดค่า</button>
+    </div>
+  </div>
+
+  <!-- Connection -->
+  <div class="conn-bar">
+    <div class="conn-group">
+      <label>Facebook Page ID</label>
+      <input id="pageId" placeholder="เช่น 123456789012345" />
+    </div>
+    <div class="conn-group" style="flex:2;">
+      <label>Facebook Access Token</label>
+      <input id="accessToken" type="password" placeholder="Page Access Token" />
+    </div>
+    <button class="btn-connect" id="btnConnect" onclick="connectFB()">เชื่อมต่อ</button>
+  </div>
+
+  <!-- Status -->
+  <div class="status-bar">
+    <div class="status-chip">
+      <div class="dot" id="dotFb"></div>
+      <span id="statusFb">Facebook: ยังไม่เชื่อมต่อ</span>
+    </div>
+    <div class="status-chip">
+      <div class="dot dot-off" id="dotPage"></div>
+      <span id="statusPage">เพจ: —</span>
+    </div>
+  </div>
+
+  <!-- Tabs -->
+  <div class="tabs">
+    <button class="tab active" data-tab="posts" onclick="switchTab('posts')">📝 โพสต์</button>
+    <button class="tab" data-tab="albums" onclick="switchTab('albums')">📚 อัลบั้ม</button>
+    <button class="tab" data-tab="manage" onclick="switchTab('manage')">⚙️ จัดการโพสต์</button>
+  </div>
+
+  <!-- ===== TAB: POSTS ===== -->
+  <div class="panel active" id="panel-posts">
+
+    <!-- Add Form -->
+    <div class="add-form">
+      <h3>➕ เพิ่มโพสต์ใหม่</h3>
+      <div class="form-grid">
+        <div class="form-group full">
+          <label>ข้อความ</label>
+          <textarea id="fMessage" rows="3" placeholder="พิมพ์ข้อความที่ต้องการโพสต์..."></textarea>
+        </div>
+        <div class="form-group">
+          <label>ลิงก์รูปภาพ (เว้นว่างได้)</label>
+          <input id="fImage" placeholder="https://example.com/img.jpg" />
+        </div>
+        <div class="form-group">
+          <label>🛒 ลิงก์ Shopee (เว้นว่างได้)</label>
+          <input id="fShopee" placeholder="https://shopee.co.th/..." />
+        </div>
+        <div class="form-group">
+          <label>📚 อัลบั้ม (เว้นว่าง = feed ปกติ)</label>
+          <select id="fAlbum">
+            <option value="">— โพสต์ลง Feed —</option>
+          </select>
+        </div>
+        <div class="form-group">
+          <label>⏰ ตั้งเวลา (เว้นว่าง = โพสต์ทันที)</label>
+          <input id="fSchedule" type="datetime-local" />
+        </div>
+      </div>
+      <div class="form-footer">
+        <button class="btn" onclick="clearForm()">ล้าง</button>
+        <button class="btn btn-primary" onclick="addPost()">➕ เพิ่มคิว</button>
+        <button class="btn btn-success" onclick="addAndPost()">🚀 เพิ่มแล้วโพสต์เลย</button>
+      </div>
+    </div>
+
+    <!-- Queue Table -->
+    <div class="table-wrap">
+      <div class="table-header">
+        <h3>📋 คิวโพสต์ (<span id="queueCount">0</span>)</h3>
+        <div class="table-actions">
+          <button class="btn btn-sm" onclick="selectAllQueue()">☑️ เลือกทั้งหมด</button>
+          <button class="btn btn-sm btn-primary" onclick="postSelected()">🚀 โพสต์ที่เลือก</button>
+          <button class="btn btn-sm btn-danger" onclick="removeSelected()">🗑️ ลบที่เลือก</button>
+        </div>
+      </div>
+      <div style="overflow-x:auto;">
+        <table>
+          <thead>
+            <tr>
+              <th style="width:30px"><input type="checkbox" class="check-all" onchange="toggleAllQueue(this)" /></th>
+              <th>ข้อความ</th>
+              <th>รูป</th>
+              <th>Shopee</th>
+              <th>อัลบั้ม</th>
+              <th>เวลา</th>
+              <th>สถานะ</th>
+              <th style="width:80px">จัดการ</th>
+            </tr>
+          </thead>
+          <tbody id="queueBody">
+            <tr><td colspan="8"><div class="empty"><div class="empty-icon">📭</div><p>ยังไม่มีโพสต์ในคิว</p></div></td></tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+
+    <!-- Log -->
+    <div class="log-area">
+      <h3>📜 Log</h3>
+      <div id="logBox">พร้อมใช้งาน...</div>
+    </div>
+  </div>
+
+  <!-- ===== TAB: ALBUMS ===== -->
+  <div class="panel" id="panel-albums">
+    <div class="table-wrap" style="padding:16px;">
+      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:4px;">
+        <h3 style="font-size:14px;font-weight:500;">📚 อัลบั้มในเพจ</h3>
+        <button class="btn btn-sm" onclick="loadAlbums()">🔄 โหลดใหม่</button>
+      </div>
+      <div id="albumList">
+        <div class="empty"><div class="empty-icon">📚</div><p>กดเชื่อมต่อ Facebook ก่อน แล้วจะโหลดอัลบั้มให้</p></div>
+      </div>
+    </div>
+    <div class="create-album-form">
+      <div class="form-group" style="flex:1;">
+        <label>สร้างอัลบั้มใหม่</label>
+        <input id="newAlbumName" placeholder="ชื่ออัลบั้ม" />
+      </div>
+      <div class="form-group" style="flex:1;">
+        <label>คำอธิบาย (เว้นว่างได้)</label>
+        <input id="newAlbumDesc" placeholder="รายละเอียดอัลบั้ม" />
+      </div>
+      <button class="btn btn-primary" onclick="createAlbum()" style="height:36px;">📁 สร้าง</button>
+    </div>
+  </div>
+
+  <!-- ===== TAB: MANAGE (Posted/Delete) ===== -->
+  <div class="panel" id="panel-manage">
+    <div class="table-wrap">
+      <div class="table-header">
+        <h3>📋 โพสต์ที่โพสต์แล้ว (<span id="postedCount">0</span>)</h3>
+        <div class="table-actions">
+          <button class="btn btn-sm" onclick="selectAllPosted()">☑️ เลือกทั้งหมด</button>
+          <button class="btn btn-sm btn-danger" onclick="deleteSelected()">🗑️ ลบโพสต์ที่เลือก</button>
+        </div>
+      </div>
+      <div style="overflow-x:auto;">
+        <table>
+          <thead>
+            <tr>
+              <th style="width:30px"><input type="checkbox" class="check-all" onchange="toggleAllPosted(this)" /></th>
+              <th>ข้อความ</th>
+              <th>FB Post ID</th>
+              <th>โพสต์เมื่อ</th>
+              <th>สถานะ</th>
+              <th style="width:80px">จัดการ</th>
+            </tr>
+          </thead>
+          <tbody id="postedBody">
+            <tr><td colspan="6"><div class="empty"><div class="empty-icon">📭</div><p>ยังไม่มีโพสต์</p></div></td></tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+  </div>
+
+</div>
+
+<!-- Toast container -->
+<div class="toast-container" id="toastContainer"></div>
+
+<script>
+// ═══════════════════════════════════════
+//   STATE
+// ═══════════════════════════════════════
+let state = {
+  connected: false,
+  pageId: '',
+  token: '',
+  pageName: '',
+  albums: [],
+  queue: [],      // {id, message, imageUrl, shopeeLink, albumId, albumName, schedule, status, fbPostId, postedAt}
+  posted: [],
+};
+
+// Load from localStorage
+function loadState() {
+  try {
+    const saved = localStorage.getItem('fb_poster_state');
+    if (saved) {
+      const s = JSON.parse(saved);
+      state.queue = s.queue || [];
+      state.posted = s.posted || [];
+      state.pageId = s.pageId || '';
+      state.token = s.token || '';
+      if (state.pageId) document.getElementById('pageId').value = state.pageId;
+      if (state.token) document.getElementById('accessToken').value = state.token;
+    }
+  } catch(e) {}
+}
+
+function saveState() {
+  try {
+    localStorage.setItem('fb_poster_state', JSON.stringify({
+      queue: state.queue,
+      posted: state.posted,
+      pageId: state.pageId,
+      token: state.token,
+    }));
+  } catch(e) {}
+}
+
+// ═══════════════════════════════════════
+//   TABS
+// ═══════════════════════════════════════
+function switchTab(name) {
+  document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
+  document.querySelectorAll('.panel').forEach(p => p.classList.remove('active'));
+  document.querySelector(`.tab[data-tab="${name}"]`).classList.add('active');
+  document.getElementById(`panel-${name}`).classList.add('active');
+}
+
+// ═══════════════════════════════════════
+//   CONNECT FACEBOOK
+// ═══════════════════════════════════════
+async function connectFB() {
+  const pageId = document.getElementById('pageId').value.trim();
+  const token = document.getElementById('accessToken').value.trim();
+  if (!pageId || !token) { toast('กรุณาใส่ Page ID และ Access Token','error'); return; }
+
+  const btn = document.getElementById('btnConnect');
+  btn.innerHTML = '<span class="spinner"></span>';
+
+  try {
+    const res = await fb(`/${pageId}?fields=name,id`);
+    state.connected = true;
+    state.pageId = pageId;
+    state.token = token;
+    state.pageName = res.name;
+
+    document.getElementById('dotFb').className = 'dot dot-on';
+    document.getElementById('statusFb').textContent = 'Facebook: เชื่อมต่อแล้ว';
+    document.getElementById('dotPage').className = 'dot dot-on';
+    document.getElementById('statusPage').textContent = `เพจ: ${res.name}`;
+    btn.textContent = '✅ เชื่อมต่อแล้ว';
+    btn.classList.add('connected');
+
+    toast(`เชื่อมต่อเพจ "${res.name}" สำเร็จ!`, 'success');
+    log(`✅ เชื่อมต่อเพจ "${res.name}" (${pageId}) สำเร็จ`, 'ok');
+    saveState();
+
+    // โหลดอัลบั้ม
+    await loadAlbums();
+  } catch(err) {
+    toast('เชื่อมต่อไม่สำเร็จ: ' + err.message, 'error');
+    log('❌ เชื่อมต่อไม่สำเร็จ: ' + err.message, 'err');
+    btn.textContent = 'เชื่อมต่อ';
+  }
+}
+
+// ═══════════════════════════════════════
+//   FACEBOOK API
+// ═══════════════════════════════════════
+async function fb(endpoint, method='GET', body=null) {
+  const token = document.getElementById('accessToken').value.trim();
+  const base = 'https://graph.facebook.com/v19.0';
+  const sep = endpoint.includes('?') ? '&' : '?';
+  const url = `${base}${endpoint}${sep}access_token=${token}`;
+
+  const opts = { method };
+  if (body) {
+    opts.headers = { 'Content-Type': 'application/json' };
+    opts.body = JSON.stringify(body);
+  }
+
+  const res = await fetch(url, opts);
+  const data = await res.json();
+  if (data.error) throw new Error(data.error.message);
+  return data;
+}
+
+// ═══════════════════════════════════════
+//   ALBUMS
+// ═══════════════════════════════════════
+async function loadAlbums() {
+  if (!state.connected) { toast('กรุณาเชื่อมต่อ Facebook ก่อน','error'); return; }
+
+  try {
+    const res = await fb(`/${state.pageId}/albums?fields=id,name,count,created_time,type&limit=50`);
+    state.albums = res.data || [];
+    renderAlbums();
+    updateAlbumSelect();
+    log(`📚 โหลดอัลบั้มสำเร็จ: ${state.albums.length} อัลบั้ม`, 'info');
+  } catch(err) {
+    log('❌ โหลดอัลบั้มไม่สำเร็จ: ' + err.message, 'err');
+    toast('โหลดอัลบั้มไม่ได้: ' + err.message, 'error');
+  }
+}
+
+function renderAlbums() {
+  const el = document.getElementById('albumList');
+  if (state.albums.length === 0) {
+    el.innerHTML = '<div class="empty"><div class="empty-icon">📭</div><p>ไม่พบอัลบั้ม</p></div>';
+    return;
+  }
+  el.innerHTML = '<div class="album-grid">' +
+    state.albums.map(a => `
+      <div class="album-card" onclick="copyAlbumId('${a.id}')">
+        <h4>${esc(a.name)}</h4>
+        <p>${a.type || 'normal'}</p>
+        <div class="album-id">ID: ${a.id}</div>
+        <div class="album-count">${a.count || 0} รูป</div>
+      </div>
+    `).join('') +
+    '</div>';
+}
+
+function updateAlbumSelect() {
+  const sel = document.getElementById('fAlbum');
+  sel.innerHTML = '<option value="">— โพสต์ลง Feed —</option>' +
+    state.albums.map(a => `<option value="${a.id}">${esc(a.name)} (${a.count||0} รูป)</option>`).join('');
+}
+
+function copyAlbumId(id) {
+  navigator.clipboard.writeText(id);
+  toast(`คัดลอก Album ID: ${id}`, 'info');
+}
+
+async function createAlbum() {
+  if (!state.connected) { toast('เชื่อมต่อ Facebook ก่อน','error'); return; }
+
+  const name = document.getElementById('newAlbumName').value.trim();
+  const desc = document.getElementById('newAlbumDesc').value.trim();
+  if (!name) { toast('ใส่ชื่ออัลบั้ม','error'); return; }
+
+  try {
+    const res = await fb(`/${state.pageId}/albums`, 'POST', {
+      name, message: desc,
+    });
+    toast(`สร้างอัลบั้ม "${name}" สำเร็จ! ID: ${res.id}`, 'success');
+    log(`📁 สร้างอัลบั้ม "${name}" → ID: ${res.id}`, 'ok');
+    document.getElementById('newAlbumName').value = '';
+    document.getElementById('newAlbumDesc').value = '';
+    await loadAlbums();
+  } catch(err) {
+    toast('สร้างอัลบั้มไม่ได้: ' + err.message, 'error');
+  }
+}
+
+// ═══════════════════════════════════════
+//   QUEUE MANAGEMENT
+// ═══════════════════════════════════════
+function addPost() {
+  const msg = document.getElementById('fMessage').value.trim();
+  if (!msg) { toast('ใส่ข้อความก่อน','error'); return; }
+
+  const albumId = document.getElementById('fAlbum').value;
+  const albumObj = state.albums.find(a => a.id === albumId);
+
+  const post = {
+    id: Date.now().toString(36),
+    message: msg,
+    imageUrl: document.getElementById('fImage').value.trim(),
+    shopeeLink: document.getElementById('fShopee').value.trim(),
+    albumId: albumId,
+    albumName: albumObj ? albumObj.name : '',
+    schedule: document.getElementById('fSchedule').value,
+    status: 'pending',
+    fbPostId: '',
+    postedAt: '',
+  };
+
+  state.queue.push(post);
+  renderQueue();
+  clearForm();
+  saveState();
+  toast('เพิ่มในคิวแล้ว', 'success');
+}
+
+async function addAndPost() {
+  const msg = document.getElementById('fMessage').value.trim();
+  if (!msg) { toast('ใส่ข้อความก่อน','error'); return; }
+  if (!state.connected) { toast('เชื่อมต่อ Facebook ก่อน','error'); return; }
+
+  addPost();
+  const last = state.queue[state.queue.length - 1];
+  await doPost(last);
+  renderQueue();
+  renderPosted();
+  saveState();
+}
+
+function clearForm() {
+  document.getElementById('fMessage').value = '';
+  document.getElementById('fImage').value = '';
+  document.getElementById('fShopee').value = '';
+  document.getElementById('fAlbum').value = '';
+  document.getElementById('fSchedule').value = '';
+}
+
+function renderQueue() {
+  const body = document.getElementById('queueBody');
+  const pending = state.queue.filter(p => p.status === 'pending' || p.status === 'error');
+  document.getElementById('queueCount').textContent = pending.length;
+
+  if (pending.length === 0) {
+    body.innerHTML = '<tr><td colspan="8"><div class="empty"><div class="empty-icon">📭</div><p>ยังไม่มีโพสต์ในคิว</p></div></td></tr>';
+    return;
+  }
+
+  body.innerHTML = pending.map(p => `
+    <tr>
+      <td><input type="checkbox" class="row-check" data-id="${p.id}" /></td>
+      <td title="${esc(p.message)}">${esc(p.message.substring(0,50))}${p.message.length>50?'...':''}</td>
+      <td>${p.imageUrl ? '🖼️' : '—'}</td>
+      <td>${p.shopeeLink ? `<a href="${esc(p.shopeeLink)}" class="link-shopee" target="_blank">🛒 ลิงก์</a>` : '—'}</td>
+      <td>${p.albumName ? `<span class="badge badge-album">📚 ${esc(p.albumName)}</span>` : '— Feed —'}</td>
+      <td>${p.schedule ? formatDate(p.schedule) : 'ทันที'}</td>
+      <td><span class="badge badge-${p.status}">${p.status}</span></td>
+      <td>
+        <button class="btn btn-sm btn-primary" onclick="postOne('${p.id}')">🚀</button>
+        <button class="btn btn-sm btn-danger" onclick="removeOne('${p.id}')">✕</button>
+      </td>
+    </tr>
+  `).join('');
+}
+
+function renderPosted() {
+  const body = document.getElementById('postedBody');
+  document.getElementById('postedCount').textContent = state.posted.length;
+
+  if (state.posted.length === 0) {
+    body.innerHTML = '<tr><td colspan="6"><div class="empty"><div class="empty-icon">📭</div><p>ยังไม่มีโพสต์</p></div></td></tr>';
+    return;
+  }
+
+  body.innerHTML = state.posted.slice().reverse().map(p => `
+    <tr>
+      <td><input type="checkbox" class="row-check-posted" data-id="${p.id}" /></td>
+      <td title="${esc(p.message)}">${esc(p.message.substring(0,40))}${p.message.length>40?'...':''}</td>
+      <td><code style="font-size:11px;color:var(--text-3);">${p.fbPostId||'—'}</code></td>
+      <td style="font-size:12px;color:var(--text-2);">${p.postedAt || '—'}</td>
+      <td><span class="badge badge-${p.status==='deleted'?'delete':p.status}">${p.status}</span></td>
+      <td>
+        <button class="btn btn-sm btn-danger" onclick="deleteOne('${p.id}')" ${!p.fbPostId||p.status==='deleted'?'disabled style="opacity:.4"':''}>🗑️</button>
+      </td>
+    </tr>
+  `).join('');
+}
+
+// ═══════════════════════════════════════
+//   POSTING
+// ═══════════════════════════════════════
+async function doPost(post) {
+  if (!state.connected) { toast('เชื่อมต่อ Facebook ก่อน','error'); return; }
+
+  let text = post.message;
+  if (post.shopeeLink) {
+    text += `\n\n🛒 สั่งซื้อได้ที่: ${post.shopeeLink}`;
+  }
+
+  log(`📤 กำลังโพสต์: "${post.message.substring(0,40)}..."`, 'info');
+
+  try {
+    let result;
+
+    // มีรูป + มีอัลบั้ม → ลงอัลบั้ม
+    if (post.imageUrl && post.albumId) {
+      result = await fb(`/${post.albumId}/photos`, 'POST', {
+        message: text, url: post.imageUrl,
+      });
+    }
+    // มีรูป ไม่มีอัลบั้ม → ลง feed
+    else if (post.imageUrl) {
+      result = await fb(`/${state.pageId}/photos`, 'POST', {
+        message: text, url: post.imageUrl,
+      });
+    }
+    // ไม่มีรูป → ลง feed
+    else {
+      const body = { message: text };
+      if (post.shopeeLink) body.link = post.shopeeLink;
+      result = await fb(`/${state.pageId}/feed`, 'POST', body);
+    }
+
+    const fbId = result.id || result.post_id;
+    post.status = 'posted';
+    post.fbPostId = fbId;
+    post.postedAt = new Date().toLocaleString('th-TH');
+
+    // ย้ายไป posted
+    state.queue = state.queue.filter(q => q.id !== post.id);
+    state.posted.push(post);
+
+    log(`✅ โพสต์สำเร็จ! FB ID: ${fbId}`, 'ok');
+    toast('โพสต์สำเร็จ!', 'success');
+  } catch(err) {
+    post.status = 'error';
+    log(`❌ โพสต์ล้มเหลว: ${err.message}`, 'err');
+    toast('โพสต์ไม่สำเร็จ: ' + err.message, 'error');
+  }
+
+  saveState();
+}
+
+async function postOne(id) {
+  const post = state.queue.find(p => p.id === id);
+  if (!post) return;
+  await doPost(post);
+  renderQueue();
+  renderPosted();
+}
+
+async function postSelected() {
+  const checks = document.querySelectorAll('#queueBody .row-check:checked');
+  if (checks.length === 0) { toast('เลือกโพสต์ก่อน','error'); return; }
+  if (!state.connected) { toast('เชื่อมต่อ Facebook ก่อน','error'); return; }
+
+  for (const chk of checks) {
+    const post = state.queue.find(p => p.id === chk.dataset.id);
+    if (post && post.status === 'pending') {
+      await doPost(post);
+      await sleep(3000);
+    }
+  }
+  renderQueue();
+  renderPosted();
+}
+
+// ═══════════════════════════════════════
+//   DELETE
+// ═══════════════════════════════════════
+async function deleteOne(id) {
+  if (!confirm('ยืนยันลบโพสต์นี้จาก Facebook?')) return;
+
+  const post = state.posted.find(p => p.id === id);
+  if (!post || !post.fbPostId) return;
+
+  log(`🗑️ กำลังลบ FB ID: ${post.fbPostId}...`, 'warn');
+
+  try {
+    await fb(`/${post.fbPostId}`, 'DELETE');
+    post.status = 'deleted';
+    log(`✅ ลบสำเร็จ! FB ID: ${post.fbPostId}`, 'ok');
+    toast('ลบโพสต์สำเร็จ!', 'success');
+  } catch(err) {
+    log(`❌ ลบไม่ได้: ${err.message}`, 'err');
+    toast('ลบไม่สำเร็จ: ' + err.message, 'error');
+  }
+
+  saveState();
+  renderPosted();
+}
+
+async function deleteSelected() {
+  const checks = document.querySelectorAll('#postedBody .row-check-posted:checked');
+  if (checks.length === 0) { toast('เลือกโพสต์ที่ต้องการลบ','error'); return; }
+  if (!confirm(`ยืนยันลบ ${checks.length} โพสต์จาก Facebook?`)) return;
+
+  for (const chk of checks) {
+    const post = state.posted.find(p => p.id === chk.dataset.id);
+    if (post && post.fbPostId && post.status !== 'deleted') {
+      try {
+        await fb(`/${post.fbPostId}`, 'DELETE');
+        post.status = 'deleted';
+        log(`✅ ลบ ${post.fbPostId} สำเร็จ`, 'ok');
+      } catch(err) {
+        log(`❌ ลบ ${post.fbPostId} ไม่ได้: ${err.message}`, 'err');
+      }
+      await sleep(2000);
+    }
+  }
+
+  toast('ลบเสร็จแล้ว', 'success');
+  saveState();
+  renderPosted();
+}
+
+// ═══════════════════════════════════════
+//   QUEUE HELPERS
+// ═══════════════════════════════════════
+function removeOne(id) {
+  state.queue = state.queue.filter(p => p.id !== id);
+  saveState();
+  renderQueue();
+}
+
+function removeSelected() {
+  const checks = document.querySelectorAll('#queueBody .row-check:checked');
+  const ids = [...checks].map(c => c.dataset.id);
+  state.queue = state.queue.filter(p => !ids.includes(p.id));
+  saveState();
+  renderQueue();
+  toast(`ลบ ${ids.length} รายการจากคิว`, 'info');
+}
+
+function selectAllQueue() {
+  document.querySelectorAll('#queueBody .row-check').forEach(c => c.checked = true);
+}
+function toggleAllQueue(el) {
+  document.querySelectorAll('#queueBody .row-check').forEach(c => c.checked = el.checked);
+}
+function selectAllPosted() {
+  document.querySelectorAll('#postedBody .row-check-posted').forEach(c => c.checked = true);
+}
+function toggleAllPosted(el) {
+  document.querySelectorAll('#postedBody .row-check-posted').forEach(c => c.checked = el.checked);
+}
+
+// ═══════════════════════════════════════
+//   CONFIG EXPORT/IMPORT
+// ═══════════════════════════════════════
+function exportConfig() {
+  const data = {
+    pageId: document.getElementById('pageId').value,
+    token: document.getElementById('accessToken').value,
+    queue: state.queue,
+    posted: state.posted,
+  };
+  const blob = new Blob([JSON.stringify(data,null,2)], {type:'application/json'});
+  const a = document.createElement('a');
+  a.href = URL.createObjectURL(blob);
+  a.download = 'fb-poster-config.json';
+  a.click();
+  toast('บันทึกค่าสำเร็จ','success');
+}
+
+function importConfig() {
+  const input = document.createElement('input');
+  input.type = 'file';
+  input.accept = '.json';
+  input.onchange = (e) => {
+    const file = e.target.files[0];
+    if (!file) return;
+    const reader = new FileReader();
+    reader.onload = (ev) => {
+      try {
+        const data = JSON.parse(ev.target.result);
+        if (data.pageId) document.getElementById('pageId').value = data.pageId;
+        if (data.token) document.getElementById('accessToken').value = data.token;
+        if (data.queue) state.queue = data.queue;
+        if (data.posted) state.posted = data.posted;
+        saveState();
+        renderQueue();
+        renderPosted();
+        toast('โหลดค่าสำเร็จ','success');
+      } catch(err) {
+        toast('ไฟล์ไม่ถูกต้อง','error');
+      }
+    };
+    reader.readAsText(file);
+  };
+  input.click();
+}
+
+// ═══════════════════════════════════════
+//   UTILS
+// ═══════════════════════════════════════
+function log(msg, type='') {
+  const box = document.getElementById('logBox');
+  const cls = type === 'ok' ? 'log-ok' : type === 'err' ? 'log-err' : type === 'info' ? 'log-info' : type === 'warn' ? 'log-warn' : '';
+  const time = new Date().toLocaleTimeString('th-TH');
+  box.innerHTML += `\n<span class="${cls}">[${time}] ${esc(msg)}</span>`;
+  box.scrollTop = box.scrollHeight;
+}
+
+function toast(msg, type='info') {
+  const el = document.createElement('div');
+  el.className = `toast toast-${type}`;
+  el.textContent = msg;
+  document.getElementById('toastContainer').appendChild(el);
+  setTimeout(() => el.remove(), 4000);
+}
+
+function esc(str) {
+  const d = document.createElement('div');
+  d.textContent = str;
+  return d.innerHTML;
+}
+
+function formatDate(d) {
+  return new Date(d).toLocaleString('th-TH', { dateStyle:'short', timeStyle:'short' });
+}
+
+function sleep(ms) {
+  return new Promise(r => setTimeout(r, ms));
+}
+
+// ═══════════════════════════════════════
+//   INIT
+// ═══════════════════════════════════════
+loadState();
+renderQueue();
+renderPosted();
+</script>
 </body>
 </html>
