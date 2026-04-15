@@ -109,8 +109,44 @@
     <div class="card">
       <h3 style="margin-bottom:14px; font-size:15px;">➕ เพิ่มโพสต์ใหม่</h3>
 
-      <label>ข้อความ</label>
-      <textarea id="postMsg" placeholder="ข้อความโพสต์..."></textarea>
+      <!-- Caption mode toggle -->
+      <div style="display:flex; align-items:center; gap:10px; margin-bottom:10px;">
+        <label style="margin:0; font-size:14px; font-weight:600; color:#1c1e21;">ข้อความ / แคปชั่น</label>
+        <div style="margin-left:auto; display:flex; gap:4px;">
+          <div class="img-tab active" id="capTabSingle" onclick="switchCapMode('single')" style="font-size:12px; padding:4px 12px;">✏️ ข้อความเดียว</div>
+          <div class="img-tab" id="capTabRotate" onclick="switchCapMode('rotate')" style="font-size:12px; padding:4px 12px;">🔄 แคปชั่นสลับ</div>
+        </div>
+      </div>
+
+      <!-- Single caption -->
+      <div id="capModeSingle">
+        <textarea id="postMsg" placeholder="ข้อความโพสต์..."></textarea>
+      </div>
+
+      <!-- Rotating captions -->
+      <div id="capModeRotate" style="display:none;">
+        <div style="background:#f0f7ff; border:1.5px dashed #1877f2; border-radius:8px; padding:12px;">
+          <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:8px;">
+            <span style="font-size:13px; color:#1877f2; font-weight:600;">📋 รายการแคปชั่น (<span id="capCount">0</span> รายการ)</span>
+            <div style="display:flex; gap:6px;">
+              <button class="btn btn-secondary btn-sm" onclick="clearCaptions()">ล้างทั้งหมด</button>
+            </div>
+          </div>
+          <textarea id="capPoolInput" placeholder="พิมพ์แคปชั่น 1 บรรทัดต่อ 1 แคปชั่น หรือคั่นด้วย ---&#10;ตัวอย่าง:&#10;สินค้าคุณภาพดี ราคาถูก&#10;---&#10;จัดส่งทุกวัน ทั่วประเทศ&#10;---&#10;สั่งได้เลย มีของพร้อมส่ง" style="min-height:120px;" oninput="updateCapCount()"></textarea>
+          <div style="display:flex; gap:8px; margin-top:10px; align-items:center; flex-wrap:wrap;">
+            <div style="display:flex; align-items:center; gap:6px;">
+              <label style="margin:0; white-space:nowrap;">จำนวนโพสต์ที่ต้องการเพิ่ม:</label>
+              <input type="number" id="bulkCount" value="1" min="1" max="100" style="width:70px;">
+            </div>
+            <div style="display:flex; align-items:center; gap:6px;">
+              <label style="margin:0; white-space:nowrap; font-size:12px; color:#606770;">เริ่มจากแคปชั่นที่:</label>
+              <span id="capIdxDisplay" style="font-size:13px; color:#1877f2; font-weight:600;">1</span>
+              <button class="btn btn-secondary btn-sm" onclick="resetCapIdx()">รีเซ็ต</button>
+            </div>
+          </div>
+          <div id="capPreview" style="margin-top:8px; font-size:12px; color:#606770;"></div>
+        </div>
+      </div>
 
       <!-- IMAGE SECTION (NEW) -->
       <div style="margin-top:12px;">
@@ -160,7 +196,7 @@
       <div class="row" style="margin-top:14px;">
         <button class="btn btn-secondary" onclick="clearForm()">ล้าง</button>
         <button class="btn btn-primary" onclick="addToQueue()">➕ เพิ่มคิว</button>
-        <button class="btn btn-success" onclick="addAndPost()">🚀 เพิ่มแล้วโพสต์เลย</button>
+        <button class="btn btn-success" id="btnAddPost" onclick="addAndPost()">🚀 เพิ่มแล้วโพสต์เลย</button>
       </div>
     </div>
 
@@ -242,6 +278,52 @@ let posted = [];
 let albums = [];
 let selectedFiles = [];
 let isConnected = false;
+let capIdx = 0; // caption rotation index
+
+// ── Caption mode ──
+function switchCapMode(mode) {
+  document.getElementById('capModeSingle').style.display = mode==='single' ? '' : 'none';
+  document.getElementById('capModeRotate').style.display = mode==='rotate' ? '' : 'none';
+  document.getElementById('capTabSingle').classList.toggle('active', mode==='single');
+  document.getElementById('capTabRotate').classList.toggle('active', mode==='rotate');
+  updateCapCount();
+}
+
+function getCaptions() {
+  const raw = document.getElementById('capPoolInput').value;
+  return raw.split(/\n---\n|\n---$|^---\n/).map(s => s.trim()).filter(Boolean);
+}
+
+function updateCapCount() {
+  const caps = getCaptions();
+  document.getElementById('capCount').textContent = caps.length;
+  const bulk = parseInt(document.getElementById('bulkCount').value) || 1;
+  if (caps.length > 0) {
+    const preview = [];
+    for (let i = 0; i < Math.min(bulk, 3); i++) {
+      preview.push(`โพสต์ ${i+1}: "${caps[(capIdx + i) % caps.length].substring(0,40)}${caps[(capIdx+i)%caps.length].length>40?'...':''}"`);
+    }
+    if (bulk > 3) preview.push(`... และอีก ${bulk-3} โพสต์`);
+    document.getElementById('capPreview').innerHTML = preview.join('<br>');
+  } else {
+    document.getElementById('capPreview').innerHTML = '';
+  }
+}
+
+function resetCapIdx() {
+  capIdx = 0;
+  document.getElementById('capIdxDisplay').textContent = '1';
+  updateCapCount();
+}
+
+function clearCaptions() {
+  document.getElementById('capPoolInput').value = '';
+  updateCapCount();
+}
+
+function isRotateMode() {
+  return document.getElementById('capTabRotate').classList.contains('active');
+}
 
 // ── Tab switching ──
 function switchTab(name) {
@@ -377,12 +459,13 @@ async function createAlbum() {
 }
 
 // ── Queue ──
-function buildQueueItem() {
+function buildQueueItem(overrideMsg) {
   const imgMode = document.getElementById('imgTabFile').classList.contains('active') ? 'file' : 'url';
   const files = imgMode === 'file' ? selectedFiles.filter(Boolean) : [];
+  const msg = overrideMsg !== undefined ? overrideMsg : document.getElementById('postMsg').value.trim();
   return {
-    id: Date.now(),
-    message: document.getElementById('postMsg').value.trim(),
+    id: Date.now() + Math.random(),
+    message: msg,
     imgUrl: imgMode === 'url' ? document.getElementById('imgUrl').value.trim() : '',
     files: files,
     fileNames: files.map(f => f.name),
@@ -395,25 +478,43 @@ function buildQueueItem() {
   };
 }
 
-function addToQueue() {
-  const item = buildQueueItem();
-  if (!item.message && !item.imgUrl && item.files.length === 0) {
-    alert('กรุณากรอกข้อความหรือเลือกรูปภาพ'); return;
+function buildBulkItems() {
+  if (!isRotateMode()) {
+    return [buildQueueItem()];
   }
-  queue.push(item);
+  const caps = getCaptions();
+  if (caps.length === 0) { alert('กรุณากรอกแคปชั่นอย่างน้อย 1 รายการ'); return null; }
+  const bulk = parseInt(document.getElementById('bulkCount').value) || 1;
+  const items = [];
+  for (let i = 0; i < bulk; i++) {
+    const cap = caps[(capIdx + i) % caps.length];
+    items.push(buildQueueItem(cap));
+  }
+  capIdx = (capIdx + bulk) % caps.length;
+  document.getElementById('capIdxDisplay').textContent = capIdx + 1;
+  updateCapCount();
+  return items;
+}
+
+function addToQueue() {
+  const items = buildBulkItems();
+  if (!items) return;
+  const hasContent = items.every(it => it.message || it.imgUrl || it.files.length > 0);
+  if (!hasContent) { alert('กรุณากรอกข้อความหรือเลือกรูปภาพ'); return; }
+  items.forEach(it => queue.push(it));
   renderQueue();
-  log(`เพิ่มคิวโพสต์ #${queue.length}`, 'info');
+  log(`เพิ่มคิว ${items.length} โพสต์ (รวมทั้งหมด ${queue.length})`, 'info');
 }
 
 async function addAndPost() {
-  const item = buildQueueItem();
-  if (!item.message && !item.imgUrl && item.files.length === 0) {
-    alert('กรุณากรอกข้อความหรือเลือกรูปภาพ'); return;
-  }
+  const items = buildBulkItems();
+  if (!items) return;
+  const hasContent = items.every(it => it.message || it.imgUrl || it.files.length > 0);
+  if (!hasContent) { alert('กรุณากรอกข้อความหรือเลือกรูปภาพ'); return; }
   if (!isConnected) { alert('กรุณาเชื่อมต่อ Facebook ก่อน'); return; }
-  queue.push(item);
+  items.forEach(it => queue.push(it));
   renderQueue();
-  await postItem(item);
+  for (const it of items) await postItem(it);
 }
 
 function clearForm() {
