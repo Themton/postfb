@@ -4,1052 +4,671 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>FB Bulk Poster Pro</title>
-<link href="https://fonts.googleapis.com/css2?family=Kanit:wght@300;400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
 <style>
-:root {
-  --bg: #08090d;
-  --surface: #0f1117;
-  --surface-2: #161822;
-  --surface-3: #1c1f2e;
-  --border: #262940;
-  --border-h: #3a3f5c;
-  --text: #e4e6f0;
-  --text-2: #9498b4;
-  --text-3: #5c6080;
-  --blue: #5b8af5;
-  --blue-2: #3d6ce0;
-  --blue-bg: rgba(91,138,245,0.1);
-  --green: #3dd68c;
-  --green-bg: rgba(61,214,140,0.1);
-  --orange: #f5a623;
-  --orange-bg: rgba(245,166,35,0.08);
-  --red: #ef6060;
-  --red-bg: rgba(239,96,96,0.1);
-  --pink: #e570c0;
-  --radius: 10px;
-  --radius-lg: 16px;
-}
-* { margin:0; padding:0; box-sizing:border-box; }
-body { font-family:'Kanit',sans-serif; background:var(--bg); color:var(--text); min-height:100vh; }
-code,.mono { font-family:'JetBrains Mono',monospace; }
-::-webkit-scrollbar { width:6px; }
-::-webkit-scrollbar-track { background:transparent; }
-::-webkit-scrollbar-thumb { background:var(--border); border-radius:3px; }
-input,textarea,select,button { font-family:inherit; }
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body { font-family: 'Segoe UI', sans-serif; background: #f0f2f5; color: #1c1e21; min-height: 100vh; }
+  header { background: #1877f2; color: white; padding: 12px 20px; display: flex; align-items: center; gap: 10px; }
+  header h1 { font-size: 18px; font-weight: 600; }
+  .container { max-width: 1000px; margin: 20px auto; padding: 0 16px; }
+  .card { background: white; border-radius: 8px; padding: 16px; margin-bottom: 16px; box-shadow: 0 1px 3px rgba(0,0,0,0.1); }
+  .row { display: flex; gap: 10px; align-items: center; flex-wrap: wrap; margin-bottom: 10px; }
+  input[type=text], input[type=datetime-local], select, textarea {
+    width: 100%; padding: 8px 10px; border: 1px solid #ddd; border-radius: 6px; font-size: 14px;
+    background: #f7f8fa; transition: border-color 0.2s;
+  }
+  input:focus, select:focus, textarea:focus { outline: none; border-color: #1877f2; background: white; }
+  textarea { resize: vertical; min-height: 80px; }
+  label { font-size: 13px; color: #606770; margin-bottom: 4px; display: block; }
+  .btn { padding: 8px 16px; border: none; border-radius: 6px; font-size: 14px; font-weight: 500; cursor: pointer; transition: opacity 0.2s; }
+  .btn:hover { opacity: 0.85; }
+  .btn-primary { background: #1877f2; color: white; }
+  .btn-success { background: #42b72a; color: white; }
+  .btn-danger { background: #fa3e3e; color: white; }
+  .btn-secondary { background: #e4e6eb; color: #1c1e21; }
+  .btn-sm { padding: 5px 10px; font-size: 13px; }
+  .status-bar { font-size: 13px; padding: 8px 12px; border-radius: 6px; background: #e4e6eb; }
+  .status-bar.connected { background: #e7f3ff; color: #1877f2; }
+  .tabs { display: flex; gap: 4px; margin-bottom: 16px; border-bottom: 1px solid #ddd; }
+  .tab { padding: 10px 16px; cursor: pointer; font-size: 14px; border-radius: 6px 6px 0 0; color: #606770; }
+  .tab.active { background: #e7f3ff; color: #1877f2; font-weight: 600; border-bottom: 2px solid #1877f2; }
+  .tab-content { display: none; }
+  .tab-content.active { display: block; }
+  table { width: 100%; border-collapse: collapse; font-size: 13px; }
+  th { background: #f0f2f5; padding: 8px; text-align: left; font-weight: 600; }
+  td { padding: 8px; border-top: 1px solid #f0f2f5; vertical-align: top; }
+  tr:hover td { background: #f7f8fa; }
+  .badge { display: inline-block; padding: 2px 8px; border-radius: 10px; font-size: 11px; font-weight: 600; }
+  .badge-wait { background: #fff0b3; color: #7a5100; }
+  .badge-ok { background: #d4edda; color: #155724; }
+  .badge-err { background: #f8d7da; color: #721c24; }
+  .badge-posting { background: #cce5ff; color: #004085; }
+  #log { font-size: 12px; background: #f0f2f5; border-radius: 6px; padding: 10px; max-height: 160px; overflow-y: auto; font-family: monospace; }
+  .log-line { padding: 2px 0; border-bottom: 1px solid #e4e6eb; }
+  .log-ok { color: #155724; }
+  .log-err { color: #721c24; }
+  .log-info { color: #004085; }
 
-/* Layout */
-.app { max-width:1200px; margin:0 auto; padding:16px; }
-
-/* Header */
-.header {
-  display:flex; align-items:center; justify-content:space-between;
-  padding:16px 0; margin-bottom:20px;
-  border-bottom:1px solid var(--border);
-}
-.logo { display:flex; align-items:center; gap:10px; }
-.logo-icon {
-  width:38px; height:38px; border-radius:10px;
-  background:linear-gradient(135deg,#5b8af5,#e570c0);
-  display:flex; align-items:center; justify-content:center;
-  font-size:18px; font-weight:700; color:#fff;
-}
-.logo h1 { font-size:20px; font-weight:600; letter-spacing:-0.5px; }
-.logo span { font-size:11px; color:var(--text-3); font-weight:300; display:block; margin-top:-2px; }
-
-/* Connection bar */
-.conn-bar {
-  display:flex; gap:8px; flex-wrap:wrap;
-  padding:14px 16px;
-  background:var(--surface);
-  border:1px solid var(--border);
-  border-radius:var(--radius-lg);
-  margin-bottom:16px;
-  animation:fadeIn .4s ease;
-}
-.conn-group {
-  flex:1; min-width:200px;
-  display:flex; flex-direction:column; gap:4px;
-}
-.conn-group label {
-  font-size:11px; font-weight:500; color:var(--text-3);
-  text-transform:uppercase; letter-spacing:0.5px;
-}
-.conn-group input {
-  background:var(--surface-2); border:1px solid var(--border);
-  border-radius:6px; padding:8px 10px; color:var(--text);
-  font-size:13px; outline:none; width:100%;
-  transition:border-color .2s;
-}
-.conn-group input:focus { border-color:var(--blue); }
-.conn-group input::placeholder { color:var(--text-3); }
-.btn-connect {
-  align-self:flex-end;
-  padding:8px 20px; border:none; border-radius:6px;
-  background:var(--blue); color:#fff;
-  font-size:13px; font-weight:500; cursor:pointer;
-  transition:background .2s, transform .1s;
-  white-space:nowrap; min-width:100px;
-}
-.btn-connect:hover { background:var(--blue-2); }
-.btn-connect:active { transform:scale(.97); }
-.btn-connect.connected { background:var(--green); }
-
-/* Status */
-.status-bar {
-  display:flex; gap:8px; margin-bottom:16px; flex-wrap:wrap;
-}
-.status-chip {
-  display:flex; align-items:center; gap:6px;
-  padding:6px 14px; border-radius:100px;
-  font-size:12px; font-weight:400;
-  border:1px solid var(--border);
-  background:var(--surface);
-}
-.status-chip .dot {
-  width:7px; height:7px; border-radius:50%;
-}
-.dot-on { background:var(--green); box-shadow:0 0 6px var(--green); }
-.dot-off { background:var(--red); }
-
-/* Tabs */
-.tabs {
-  display:flex; gap:2px;
-  background:var(--surface);
-  border-radius:var(--radius);
-  padding:3px;
-  margin-bottom:16px;
-  border:1px solid var(--border);
-}
-.tab {
-  flex:1; padding:10px 0;
-  text-align:center; font-size:13px; font-weight:500;
-  color:var(--text-2); background:transparent;
-  border:none; border-radius:8px; cursor:pointer;
-  transition:all .2s;
-}
-.tab:hover { color:var(--text); }
-.tab.active { background:var(--blue); color:#fff; }
-
-/* Panel */
-.panel { display:none; animation:fadeIn .3s ease; }
-.panel.active { display:block; }
-
-/* Table */
-.table-wrap {
-  background:var(--surface);
-  border:1px solid var(--border);
-  border-radius:var(--radius-lg);
-  overflow:hidden;
-}
-.table-header {
-  display:flex; align-items:center; justify-content:space-between;
-  padding:14px 16px;
-  border-bottom:1px solid var(--border);
-}
-.table-header h3 { font-size:14px; font-weight:500; }
-.table-actions { display:flex; gap:6px; }
-table {
-  width:100%; border-collapse:collapse; font-size:13px;
-}
-thead th {
-  padding:10px 14px; text-align:left;
-  font-size:11px; font-weight:600; color:var(--text-3);
-  text-transform:uppercase; letter-spacing:0.5px;
-  background:var(--surface-2);
-  border-bottom:1px solid var(--border);
-  position:sticky; top:0;
-}
-tbody td {
-  padding:10px 14px; border-bottom:1px solid var(--border);
-  vertical-align:middle;
-  max-width:250px; overflow:hidden; text-overflow:ellipsis; white-space:nowrap;
-}
-tbody tr:hover { background:var(--surface-2); }
-tbody tr:last-child td { border-bottom:none; }
-.badge {
-  display:inline-flex; align-items:center; gap:4px;
-  padding:3px 10px; border-radius:100px;
-  font-size:11px; font-weight:500;
-}
-.badge-pending { background:var(--orange-bg); color:var(--orange); }
-.badge-posted { background:var(--green-bg); color:var(--green); }
-.badge-error { background:var(--red-bg); color:var(--red); }
-.badge-delete { background:var(--red-bg); color:var(--red); }
-.badge-album { background:var(--blue-bg); color:var(--blue); }
-.link-shopee {
-  color:var(--orange); text-decoration:none;
-  font-size:12px;
-}
-.link-shopee:hover { text-decoration:underline; }
-
-/* Buttons */
-.btn {
-  padding:7px 14px; border:1px solid var(--border);
-  border-radius:6px; background:var(--surface-2);
-  color:var(--text); font-size:12px; font-weight:500;
-  cursor:pointer; transition:all .15s;
-  display:inline-flex; align-items:center; gap:5px;
-}
-.btn:hover { border-color:var(--border-h); background:var(--surface-3); }
-.btn:active { transform:scale(.97); }
-.btn-primary { background:var(--blue); border-color:var(--blue); color:#fff; }
-.btn-primary:hover { background:var(--blue-2); }
-.btn-danger { background:var(--red-bg); border-color:rgba(239,96,96,.3); color:var(--red); }
-.btn-danger:hover { background:rgba(239,96,96,.2); }
-.btn-success { background:var(--green-bg); border-color:rgba(61,214,140,.3); color:var(--green); }
-.btn-sm { padding:5px 10px; font-size:11px; }
-
-/* Add Post Form */
-.add-form {
-  background:var(--surface);
-  border:1px solid var(--border);
-  border-radius:var(--radius-lg);
-  padding:20px;
-  margin-bottom:16px;
-}
-.add-form h3 { font-size:14px; font-weight:500; margin-bottom:14px; }
-.form-grid {
-  display:grid;
-  grid-template-columns:1fr 1fr;
-  gap:12px;
-}
-.form-group { display:flex; flex-direction:column; gap:4px; }
-.form-group.full { grid-column:1/-1; }
-.form-group label {
-  font-size:11px; font-weight:500; color:var(--text-3);
-  text-transform:uppercase; letter-spacing:0.5px;
-}
-.form-group input,
-.form-group textarea,
-.form-group select {
-  background:var(--surface-2); border:1px solid var(--border);
-  border-radius:6px; padding:9px 12px; color:var(--text);
-  font-size:13px; outline:none; resize:vertical;
-  transition:border-color .2s;
-}
-.form-group input:focus,
-.form-group textarea:focus,
-.form-group select:focus { border-color:var(--blue); }
-.form-group select option { background:var(--surface-2); }
-.form-footer {
-  display:flex; justify-content:flex-end; gap:8px;
-  margin-top:14px;
-}
-
-/* Albums */
-.album-grid {
-  display:grid; grid-template-columns:repeat(auto-fill,minmax(260px,1fr));
-  gap:12px; margin-top:12px;
-}
-.album-card {
-  background:var(--surface-2);
-  border:1px solid var(--border);
-  border-radius:var(--radius);
-  padding:16px;
-  cursor:pointer;
-  transition:all .2s;
-  position:relative;
-}
-.album-card:hover { border-color:var(--blue); transform:translateY(-2px); }
-.album-card.selected { border-color:var(--blue); background:var(--blue-bg); }
-.album-card h4 { font-size:14px; font-weight:500; margin-bottom:4px; }
-.album-card p { font-size:12px; color:var(--text-3); }
-.album-card .album-id {
-  font-family:'JetBrains Mono',monospace;
-  font-size:10px; color:var(--text-3);
-  margin-top:6px;
-}
-.album-card .album-count {
-  position:absolute; top:12px; right:12px;
-  background:var(--surface-3);
-  padding:2px 8px; border-radius:100px;
-  font-size:11px; color:var(--text-2);
-}
-
-/* Create Album */
-.create-album-form {
-  display:flex; gap:8px; align-items:flex-end;
-  margin-top:12px; padding:14px;
-  background:var(--surface);
-  border:1px solid var(--border);
-  border-radius:var(--radius);
-}
-
-/* Log */
-.log-area {
-  background:var(--surface);
-  border:1px solid var(--border);
-  border-radius:var(--radius-lg);
-  padding:16px; margin-top:16px;
-}
-.log-area h3 { font-size:13px; font-weight:500; margin-bottom:10px; display:flex; align-items:center; gap:6px; }
-#logBox {
-  background:var(--surface-2);
-  border:1px solid var(--border);
-  border-radius:8px;
-  padding:12px;
-  font-family:'JetBrains Mono',monospace;
-  font-size:12px;
-  line-height:1.8;
-  max-height:300px;
-  overflow-y:auto;
-  color:var(--text-2);
-}
-.log-ok { color:var(--green); }
-.log-err { color:var(--red); }
-.log-info { color:var(--blue); }
-.log-warn { color:var(--orange); }
-
-/* Toast */
-.toast-container { position:fixed; top:20px; right:20px; z-index:9999; display:flex; flex-direction:column; gap:8px; }
-.toast {
-  padding:12px 18px;
-  border-radius:8px;
-  font-size:13px; font-weight:400;
-  color:#fff;
-  box-shadow:0 8px 30px rgba(0,0,0,.4);
-  animation:slideIn .3s ease;
-  max-width:360px;
-}
-.toast-success { background:linear-gradient(135deg,#2d8c5a,#3dd68c22); border:1px solid rgba(61,214,140,.3); }
-.toast-error { background:linear-gradient(135deg,#8c2d2d,#ef606022); border:1px solid rgba(239,96,96,.3); }
-.toast-info { background:linear-gradient(135deg,#2d4a8c,#5b8af522); border:1px solid rgba(91,138,245,.3); }
-
-/* Empty state */
-.empty {
-  text-align:center; padding:50px 20px;
-  color:var(--text-3);
-}
-.empty .empty-icon { font-size:40px; margin-bottom:10px; opacity:.5; }
-.empty p { font-size:14px; }
-
-/* Checkbox */
-.check-all { cursor:pointer; width:16px; height:16px; accent-color:var(--blue); }
-.row-check { cursor:pointer; width:15px; height:15px; accent-color:var(--blue); }
-
-/* Responsive */
-@media(max-width:768px) {
-  .form-grid { grid-template-columns:1fr; }
-  .conn-bar { flex-direction:column; }
-  .header { flex-direction:column; gap:8px; }
-  .table-wrap { overflow-x:auto; }
-  table { min-width:700px; }
-}
-
-/* Animations */
-@keyframes fadeIn { from{opacity:0;transform:translateY(8px)} to{opacity:1;transform:translateY(0)} }
-@keyframes slideIn { from{opacity:0;transform:translateX(30px)} to{opacity:1;transform:translateX(0)} }
-@keyframes spin { to{transform:rotate(360deg)} }
-.spinner { display:inline-block; width:14px; height:14px; border:2px solid rgba(255,255,255,.3); border-top-color:#fff; border-radius:50%; animation:spin .6s linear infinite; }
+  /* ── Image upload zone ── */
+  .img-section { border: 1.5px dashed #c0c4cb; border-radius: 8px; padding: 14px; background: #fafafa; }
+  .img-tabs { display: flex; gap: 8px; margin-bottom: 12px; }
+  .img-tab { padding: 5px 14px; border-radius: 20px; font-size: 13px; cursor: pointer; border: 1px solid #ddd; background: white; color: #606770; }
+  .img-tab.active { background: #1877f2; color: white; border-color: #1877f2; }
+  .upload-area { border: 2px dashed #1877f2; border-radius: 8px; padding: 20px; text-align: center; cursor: pointer; background: #f0f7ff; transition: background 0.2s; }
+  .upload-area:hover { background: #dceeff; }
+  .upload-area input { display: none; }
+  .upload-area p { font-size: 13px; color: #1877f2; margin-top: 6px; }
+  .preview-grid { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 10px; }
+  .preview-item { position: relative; width: 80px; height: 80px; }
+  .preview-item img { width: 100%; height: 100%; object-fit: cover; border-radius: 6px; border: 1px solid #ddd; }
+  .preview-item .remove { position: absolute; top: -5px; right: -5px; background: #fa3e3e; color: white; border: none; border-radius: 50%; width: 18px; height: 18px; font-size: 11px; cursor: pointer; display: flex; align-items: center; justify-content: center; }
+  .grid2 { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+  @media(max-width:600px){ .grid2 { grid-template-columns: 1fr; } }
 </style>
 </head>
 <body>
-<div class="app">
 
-  <!-- Header -->
-  <div class="header">
-    <div class="logo">
-      <div class="logo-icon">FB</div>
-      <div>
-        <h1>FB Bulk Poster Pro</h1>
-        <span>โพสต์ Facebook อัตโนมัติ + อัลบั้ม + Shopee</span>
+<header>
+  <span style="font-size:22px;">📘</span>
+  <h1>FB Bulk Poster Pro</h1>
+  <span style="font-size:12px; opacity:0.8; margin-left:6px;">โพสต์ Facebook อัตโนมัติ + อัลบั้ม + Shopee</span>
+  <div style="margin-left:auto; display:flex; gap:8px;">
+    <button class="btn btn-secondary btn-sm" onclick="saveConfig()">💾 บันทึกค่า</button>
+    <button class="btn btn-secondary btn-sm" onclick="loadConfig()">📂 โหลดค่า</button>
+  </div>
+</header>
+
+<div class="container">
+
+  <!-- Connect -->
+  <div class="card">
+    <div class="row">
+      <div style="flex:1; min-width:200px;">
+        <label>Facebook Page ID</label>
+        <input type="text" id="pageId" placeholder="เช่น 123456789">
+      </div>
+      <div style="flex:2; min-width:260px;">
+        <label>Facebook Access Token</label>
+        <input type="text" id="token" placeholder="EAAxxxxxxxxx...">
+      </div>
+      <div style="padding-top:18px;">
+        <button class="btn btn-primary" onclick="connectFB()">เชื่อมต่อ</button>
       </div>
     </div>
-    <div style="display:flex;gap:6px;">
-      <button class="btn" onclick="exportConfig()">💾 บันทึกค่า</button>
-      <button class="btn" onclick="importConfig()">📂 โหลดค่า</button>
-    </div>
-  </div>
-
-  <!-- Connection -->
-  <div class="conn-bar">
-    <div class="conn-group">
-      <label>Facebook Page ID</label>
-      <input id="pageId" placeholder="เช่น 123456789012345" />
-    </div>
-    <div class="conn-group" style="flex:2;">
-      <label>Facebook Access Token</label>
-      <input id="accessToken" type="password" placeholder="Page Access Token" />
-    </div>
-    <button class="btn-connect" id="btnConnect" onclick="connectFB()">เชื่อมต่อ</button>
-  </div>
-
-  <!-- Status -->
-  <div class="status-bar">
-    <div class="status-chip">
-      <div class="dot" id="dotFb"></div>
-      <span id="statusFb">Facebook: ยังไม่เชื่อมต่อ</span>
-    </div>
-    <div class="status-chip">
-      <div class="dot dot-off" id="dotPage"></div>
-      <span id="statusPage">เพจ: —</span>
-    </div>
+    <div id="statusBar" class="status-bar">Facebook: ยังไม่เชื่อมต่อ &nbsp;|&nbsp; เพจ: —</div>
   </div>
 
   <!-- Tabs -->
   <div class="tabs">
-    <button class="tab active" data-tab="posts" onclick="switchTab('posts')">📝 โพสต์</button>
-    <button class="tab" data-tab="albums" onclick="switchTab('albums')">📚 อัลบั้ม</button>
-    <button class="tab" data-tab="manage" onclick="switchTab('manage')">⚙️ จัดการโพสต์</button>
+    <div class="tab active" onclick="switchTab('post')">📝 โพสต์</div>
+    <div class="tab" onclick="switchTab('album')">📚 อัลบั้ม</div>
+    <div class="tab" onclick="switchTab('manage')">⚙️ จัดการโพสต์</div>
   </div>
 
-  <!-- ===== TAB: POSTS ===== -->
-  <div class="panel active" id="panel-posts">
+  <!-- TAB: POST -->
+  <div id="tab-post" class="tab-content active">
+    <div class="card">
+      <h3 style="margin-bottom:14px; font-size:15px;">➕ เพิ่มโพสต์ใหม่</h3>
 
-    <!-- Add Form -->
-    <div class="add-form">
-      <h3>➕ เพิ่มโพสต์ใหม่</h3>
-      <div class="form-grid">
-        <div class="form-group full">
-          <label>ข้อความ</label>
-          <textarea id="fMessage" rows="3" placeholder="พิมพ์ข้อความที่ต้องการโพสต์..."></textarea>
+      <label>ข้อความ</label>
+      <textarea id="postMsg" placeholder="ข้อความโพสต์..."></textarea>
+
+      <!-- IMAGE SECTION (NEW) -->
+      <div style="margin-top:12px;">
+        <label>รูปภาพ</label>
+        <div class="img-section">
+          <div class="img-tabs">
+            <div class="img-tab active" id="imgTabUrl" onclick="switchImgTab('url')">🔗 ลิงก์ URL</div>
+            <div class="img-tab" id="imgTabFile" onclick="switchImgTab('file')">📁 อัพโหลดจากเครื่อง</div>
+          </div>
+
+          <!-- URL mode -->
+          <div id="imgModeUrl">
+            <input type="text" id="imgUrl" placeholder="https://example.com/image.jpg (เว้นว่างได้)">
+          </div>
+
+          <!-- File mode (NEW) -->
+          <div id="imgModeFile" style="display:none;">
+            <div class="upload-area" onclick="document.getElementById('fileInput').click()" id="dropZone">
+              <input type="file" id="fileInput" accept="image/*" multiple onchange="handleFileSelect(event)">
+              <div style="font-size:32px;">📷</div>
+              <p>คลิกหรือลากรูปมาวางที่นี่</p>
+              <p style="color:#999; font-size:12px;">รองรับ JPG, PNG, GIF, WEBP</p>
+            </div>
+            <div class="preview-grid" id="previewGrid"></div>
+          </div>
         </div>
-        <div class="form-group">
-          <label>ลิงก์รูปภาพ (เว้นว่างได้)</label>
-          <input id="fImage" placeholder="https://example.com/img.jpg" />
-        </div>
-        <div class="form-group">
+      </div>
+
+      <div class="grid2" style="margin-top:12px;">
+        <div>
           <label>🛒 ลิงก์ Shopee (เว้นว่างได้)</label>
-          <input id="fShopee" placeholder="https://shopee.co.th/..." />
+          <input type="text" id="shopeeUrl" placeholder="https://shopee.co.th/...">
         </div>
-        <div class="form-group">
+        <div>
           <label>📚 อัลบั้ม (เว้นว่าง = feed ปกติ)</label>
-          <select id="fAlbum">
+          <select id="albumSelect">
             <option value="">— โพสต์ลง Feed —</option>
           </select>
         </div>
-        <div class="form-group">
-          <label>⏰ ตั้งเวลา (เว้นว่าง = โพสต์ทันที)</label>
-          <input id="fSchedule" type="datetime-local" />
-        </div>
       </div>
-      <div class="form-footer">
-        <button class="btn" onclick="clearForm()">ล้าง</button>
-        <button class="btn btn-primary" onclick="addPost()">➕ เพิ่มคิว</button>
+
+      <div style="margin-top:12px;">
+        <label>⏰ ตั้งเวลา (เว้นว่าง = โพสต์ทันที)</label>
+        <input type="datetime-local" id="schedTime">
+      </div>
+
+      <div class="row" style="margin-top:14px;">
+        <button class="btn btn-secondary" onclick="clearForm()">ล้าง</button>
+        <button class="btn btn-primary" onclick="addToQueue()">➕ เพิ่มคิว</button>
         <button class="btn btn-success" onclick="addAndPost()">🚀 เพิ่มแล้วโพสต์เลย</button>
       </div>
     </div>
 
-    <!-- Queue Table -->
-    <div class="table-wrap">
-      <div class="table-header">
-        <h3>📋 คิวโพสต์ (<span id="queueCount">0</span>)</h3>
-        <div class="table-actions">
-          <button class="btn btn-sm" onclick="selectAllQueue()">☑️ เลือกทั้งหมด</button>
-          <button class="btn btn-sm btn-primary" onclick="postSelected()">🚀 โพสต์ที่เลือก</button>
-          <button class="btn btn-sm btn-danger" onclick="removeSelected()">🗑️ ลบที่เลือก</button>
+    <!-- Queue -->
+    <div class="card">
+      <div class="row" style="margin-bottom:10px;">
+        <h3 style="font-size:15px;">📋 คิวโพสต์ (<span id="queueCount">0</span>)</h3>
+        <div style="margin-left:auto; display:flex; gap:6px; flex-wrap:wrap;">
+          <button class="btn btn-secondary btn-sm" onclick="selectAllQueue()">☑️ เลือกทั้งหมด</button>
+          <button class="btn btn-primary btn-sm" onclick="postSelected()">🚀 โพสต์ที่เลือก</button>
+          <button class="btn btn-danger btn-sm" onclick="deleteSelected()">🗑️ ลบที่เลือก</button>
         </div>
       </div>
       <div style="overflow-x:auto;">
-        <table>
-          <thead>
-            <tr>
-              <th style="width:30px"><input type="checkbox" class="check-all" onchange="toggleAllQueue(this)" /></th>
-              <th>ข้อความ</th>
-              <th>รูป</th>
-              <th>Shopee</th>
-              <th>อัลบั้ม</th>
-              <th>เวลา</th>
-              <th>สถานะ</th>
-              <th style="width:80px">จัดการ</th>
-            </tr>
-          </thead>
-          <tbody id="queueBody">
-            <tr><td colspan="8"><div class="empty"><div class="empty-icon">📭</div><p>ยังไม่มีโพสต์ในคิว</p></div></td></tr>
-          </tbody>
+        <table id="queueTable">
+          <thead><tr><th></th><th>ข้อความ</th><th>รูป</th><th>Shopee</th><th>อัลบั้ม</th><th>เวลา</th><th>สถานะ</th><th>จัดการ</th></tr></thead>
+          <tbody id="queueBody"><tr><td colspan="8" style="text-align:center; color:#999; padding:20px;">📭 ยังไม่มีโพสต์ในคิว</td></tr></tbody>
         </table>
       </div>
     </div>
 
     <!-- Log -->
-    <div class="log-area">
-      <h3>📜 Log</h3>
-      <div id="logBox">พร้อมใช้งาน...</div>
+    <div class="card">
+      <h3 style="font-size:15px; margin-bottom:10px;">📜 Log</h3>
+      <div id="log"><div class="log-line log-info">พร้อมใช้งาน...</div></div>
     </div>
   </div>
 
-  <!-- ===== TAB: ALBUMS ===== -->
-  <div class="panel" id="panel-albums">
-    <div class="table-wrap" style="padding:16px;">
-      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:4px;">
-        <h3 style="font-size:14px;font-weight:500;">📚 อัลบั้มในเพจ</h3>
-        <button class="btn btn-sm" onclick="loadAlbums()">🔄 โหลดใหม่</button>
+  <!-- TAB: ALBUM -->
+  <div id="tab-album" class="tab-content">
+    <div class="card">
+      <div class="row" style="margin-bottom:12px;">
+        <h3 style="font-size:15px;">📚 อัลบั้มในเพจ</h3>
+        <button class="btn btn-secondary btn-sm" style="margin-left:auto;" onclick="loadAlbums()">🔄 โหลดใหม่</button>
       </div>
-      <div id="albumList">
-        <div class="empty"><div class="empty-icon">📚</div><p>กดเชื่อมต่อ Facebook ก่อน แล้วจะโหลดอัลบั้มให้</p></div>
+      <div id="albumList" style="font-size:14px; color:#999; padding:10px 0;">📚 กดเชื่อมต่อ Facebook ก่อน แล้วจะโหลดอัลบั้มให้</div>
+
+      <div style="border-top:1px solid #eee; margin-top:14px; padding-top:14px;">
+        <h4 style="font-size:14px; margin-bottom:10px;">สร้างอัลบั้มใหม่</h4>
+        <div class="grid2">
+          <div>
+            <label>ชื่ออัลบั้ม</label>
+            <input type="text" id="newAlbumName" placeholder="ชื่ออัลบั้ม">
+          </div>
+          <div>
+            <label>คำอธิบาย (เว้นว่างได้)</label>
+            <input type="text" id="newAlbumDesc" placeholder="คำอธิบาย">
+          </div>
+        </div>
+        <button class="btn btn-primary" style="margin-top:10px;" onclick="createAlbum()">📁 สร้าง</button>
       </div>
-    </div>
-    <div class="create-album-form">
-      <div class="form-group" style="flex:1;">
-        <label>สร้างอัลบั้มใหม่</label>
-        <input id="newAlbumName" placeholder="ชื่ออัลบั้ม" />
-      </div>
-      <div class="form-group" style="flex:1;">
-        <label>คำอธิบาย (เว้นว่างได้)</label>
-        <input id="newAlbumDesc" placeholder="รายละเอียดอัลบั้ม" />
-      </div>
-      <button class="btn btn-primary" onclick="createAlbum()" style="height:36px;">📁 สร้าง</button>
     </div>
   </div>
 
-  <!-- ===== TAB: MANAGE (Posted/Delete) ===== -->
-  <div class="panel" id="panel-manage">
-    <div class="table-wrap">
-      <div class="table-header">
-        <h3>📋 โพสต์ที่โพสต์แล้ว (<span id="postedCount">0</span>)</h3>
-        <div class="table-actions">
-          <button class="btn btn-sm" onclick="selectAllPosted()">☑️ เลือกทั้งหมด</button>
-          <button class="btn btn-sm btn-danger" onclick="deleteSelected()">🗑️ ลบโพสต์ที่เลือก</button>
+  <!-- TAB: MANAGE -->
+  <div id="tab-manage" class="tab-content">
+    <div class="card">
+      <div class="row" style="margin-bottom:12px;">
+        <h3 style="font-size:15px;">📋 โพสต์ที่โพสต์แล้ว (<span id="postedCount">0</span>)</h3>
+        <div style="margin-left:auto; display:flex; gap:6px;">
+          <button class="btn btn-secondary btn-sm" onclick="selectAllPosted()">☑️ เลือกทั้งหมด</button>
+          <button class="btn btn-danger btn-sm" onclick="deletePosted()">🗑️ ลบโพสต์ที่เลือก</button>
         </div>
       </div>
       <div style="overflow-x:auto;">
-        <table>
-          <thead>
-            <tr>
-              <th style="width:30px"><input type="checkbox" class="check-all" onchange="toggleAllPosted(this)" /></th>
-              <th>ข้อความ</th>
-              <th>FB Post ID</th>
-              <th>โพสต์เมื่อ</th>
-              <th>สถานะ</th>
-              <th style="width:80px">จัดการ</th>
-            </tr>
-          </thead>
-          <tbody id="postedBody">
-            <tr><td colspan="6"><div class="empty"><div class="empty-icon">📭</div><p>ยังไม่มีโพสต์</p></div></td></tr>
-          </tbody>
+        <table id="postedTable">
+          <thead><tr><th></th><th>ข้อความ</th><th>FB Post ID</th><th>โพสต์เมื่อ</th><th>สถานะ</th><th>จัดการ</th></tr></thead>
+          <tbody id="postedBody"><tr><td colspan="6" style="text-align:center; color:#999; padding:20px;">📭 ยังไม่มีโพสต์</td></tr></tbody>
         </table>
       </div>
     </div>
   </div>
 
-</div>
-
-<!-- Toast container -->
-<div class="toast-container" id="toastContainer"></div>
+</div><!-- /container -->
 
 <script>
-// ═══════════════════════════════════════
-//   STATE
-// ═══════════════════════════════════════
-let state = {
-  connected: false,
-  pageId: '',
-  token: '',
-  pageName: '',
-  albums: [],
-  queue: [],      // {id, message, imageUrl, shopeeLink, albumId, albumName, schedule, status, fbPostId, postedAt}
-  posted: [],
-};
+let queue = [];
+let posted = [];
+let albums = [];
+let selectedFiles = [];
+let isConnected = false;
 
-// Load from localStorage
-function loadState() {
-  try {
-    const saved = localStorage.getItem('fb_poster_state');
-    if (saved) {
-      const s = JSON.parse(saved);
-      state.queue = s.queue || [];
-      state.posted = s.posted || [];
-      state.pageId = s.pageId || '';
-      state.token = s.token || '';
-      if (state.pageId) document.getElementById('pageId').value = state.pageId;
-      if (state.token) document.getElementById('accessToken').value = state.token;
-    }
-  } catch(e) {}
-}
-
-function saveState() {
-  try {
-    localStorage.setItem('fb_poster_state', JSON.stringify({
-      queue: state.queue,
-      posted: state.posted,
-      pageId: state.pageId,
-      token: state.token,
-    }));
-  } catch(e) {}
-}
-
-// ═══════════════════════════════════════
-//   TABS
-// ═══════════════════════════════════════
+// ── Tab switching ──
 function switchTab(name) {
-  document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
-  document.querySelectorAll('.panel').forEach(p => p.classList.remove('active'));
-  document.querySelector(`.tab[data-tab="${name}"]`).classList.add('active');
-  document.getElementById(`panel-${name}`).classList.add('active');
+  document.querySelectorAll('.tab').forEach((t,i) => t.classList.remove('active'));
+  document.querySelectorAll('.tab-content').forEach(c => c.classList.remove('active'));
+  const tabs = ['post','album','manage'];
+  document.querySelectorAll('.tab')[tabs.indexOf(name)].classList.add('active');
+  document.getElementById('tab-'+name).classList.add('active');
 }
 
-// ═══════════════════════════════════════
-//   CONNECT FACEBOOK
-// ═══════════════════════════════════════
+function switchImgTab(mode) {
+  document.getElementById('imgModeUrl').style.display = mode==='url' ? '' : 'none';
+  document.getElementById('imgModeFile').style.display = mode==='file' ? '' : 'none';
+  document.getElementById('imgTabUrl').classList.toggle('active', mode==='url');
+  document.getElementById('imgTabFile').classList.toggle('active', mode==='file');
+}
+
+// ── File upload handler ──
+function handleFileSelect(e) {
+  const files = Array.from(e.target.files);
+  files.forEach(f => {
+    if (!f.type.startsWith('image/')) return;
+    selectedFiles.push(f);
+    const reader = new FileReader();
+    reader.onload = (ev) => renderPreview(ev.target.result, selectedFiles.length - 1);
+    reader.readAsDataURL(f);
+  });
+  e.target.value = '';
+}
+
+function renderPreview(src, idx) {
+  const grid = document.getElementById('previewGrid');
+  const item = document.createElement('div');
+  item.className = 'preview-item';
+  item.dataset.idx = idx;
+  item.innerHTML = `<img src="${src}"><button class="remove" onclick="removeFile(${idx})">✕</button>`;
+  grid.appendChild(item);
+}
+
+function removeFile(idx) {
+  selectedFiles[idx] = null;
+  const items = document.querySelectorAll('.preview-item');
+  items.forEach(i => { if(+i.dataset.idx === idx) i.remove(); });
+}
+
+// Drag & drop
+const dropZone = document.getElementById('dropZone');
+dropZone.addEventListener('dragover', e => { e.preventDefault(); dropZone.style.background='#dceeff'; });
+dropZone.addEventListener('dragleave', () => { dropZone.style.background=''; });
+dropZone.addEventListener('drop', e => {
+  e.preventDefault(); dropZone.style.background='';
+  const files = Array.from(e.dataTransfer.files).filter(f => f.type.startsWith('image/'));
+  files.forEach(f => {
+    selectedFiles.push(f);
+    const reader = new FileReader();
+    reader.onload = (ev) => renderPreview(ev.target.result, selectedFiles.length - 1);
+    reader.readAsDataURL(f);
+  });
+});
+
+// ── Facebook Connect ──
 async function connectFB() {
   const pageId = document.getElementById('pageId').value.trim();
-  const token = document.getElementById('accessToken').value.trim();
-  if (!pageId || !token) { toast('กรุณาใส่ Page ID และ Access Token','error'); return; }
-
-  const btn = document.getElementById('btnConnect');
-  btn.innerHTML = '<span class="spinner"></span>';
-
+  const token = document.getElementById('token').value.trim();
+  if (!pageId || !token) { alert('กรุณากรอก Page ID และ Token'); return; }
+  log('กำลังเชื่อมต่อ...', 'info');
   try {
-    const res = await fb(`/${pageId}?fields=name,id`);
-    state.connected = true;
-    state.pageId = pageId;
-    state.token = token;
-    state.pageName = res.name;
-
-    document.getElementById('dotFb').className = 'dot dot-on';
-    document.getElementById('statusFb').textContent = 'Facebook: เชื่อมต่อแล้ว';
-    document.getElementById('dotPage').className = 'dot dot-on';
-    document.getElementById('statusPage').textContent = `เพจ: ${res.name}`;
-    btn.textContent = '✅ เชื่อมต่อแล้ว';
-    btn.classList.add('connected');
-
-    toast(`เชื่อมต่อเพจ "${res.name}" สำเร็จ!`, 'success');
-    log(`✅ เชื่อมต่อเพจ "${res.name}" (${pageId}) สำเร็จ`, 'ok');
-    saveState();
-
-    // โหลดอัลบั้ม
-    await loadAlbums();
-  } catch(err) {
-    toast('เชื่อมต่อไม่สำเร็จ: ' + err.message, 'error');
-    log('❌ เชื่อมต่อไม่สำเร็จ: ' + err.message, 'err');
-    btn.textContent = 'เชื่อมต่อ';
+    const r = await fetch(`https://graph.facebook.com/v18.0/${pageId}?fields=name,id&access_token=${token}`);
+    const d = await r.json();
+    if (d.error) throw new Error(d.error.message);
+    isConnected = true;
+    document.getElementById('statusBar').textContent = `Facebook: เชื่อมต่อแล้ว ✅  |  เพจ: ${d.name} (${d.id})`;
+    document.getElementById('statusBar').className = 'status-bar connected';
+    log(`เชื่อมต่อเพจ "${d.name}" สำเร็จ`, 'ok');
+    loadAlbums();
+  } catch(e) {
+    log('เชื่อมต่อไม่สำเร็จ: ' + e.message, 'err');
+    alert('เชื่อมต่อไม่สำเร็จ: ' + e.message);
   }
 }
 
-// ═══════════════════════════════════════
-//   FACEBOOK API
-// ═══════════════════════════════════════
-async function fb(endpoint, method='GET', body=null) {
-  const token = document.getElementById('accessToken').value.trim();
-  const base = 'https://graph.facebook.com/v19.0';
-  const sep = endpoint.includes('?') ? '&' : '?';
-  const url = `${base}${endpoint}${sep}access_token=${token}`;
-
-  const opts = { method };
-  if (body) {
-    opts.headers = { 'Content-Type': 'application/json' };
-    opts.body = JSON.stringify(body);
-  }
-
-  const res = await fetch(url, opts);
-  const data = await res.json();
-  if (data.error) throw new Error(data.error.message);
-  return data;
-}
-
-// ═══════════════════════════════════════
-//   ALBUMS
-// ═══════════════════════════════════════
+// ── Albums ──
 async function loadAlbums() {
-  if (!state.connected) { toast('กรุณาเชื่อมต่อ Facebook ก่อน','error'); return; }
-
+  const pageId = document.getElementById('pageId').value.trim();
+  const token = document.getElementById('token').value.trim();
+  if (!pageId || !token) return;
   try {
-    const res = await fb(`/${state.pageId}/albums?fields=id,name,count,created_time,type&limit=50`);
-    state.albums = res.data || [];
-    renderAlbums();
-    updateAlbumSelect();
-    log(`📚 โหลดอัลบั้มสำเร็จ: ${state.albums.length} อัลบั้ม`, 'info');
-  } catch(err) {
-    log('❌ โหลดอัลบั้มไม่สำเร็จ: ' + err.message, 'err');
-    toast('โหลดอัลบั้มไม่ได้: ' + err.message, 'error');
+    const r = await fetch(`https://graph.facebook.com/v18.0/${pageId}/albums?access_token=${token}&limit=50`);
+    const d = await r.json();
+    if (d.error) throw new Error(d.error.message);
+    albums = d.data || [];
+    const sel = document.getElementById('albumSelect');
+    sel.innerHTML = '<option value="">— โพสต์ลง Feed —</option>';
+    albums.forEach(a => sel.innerHTML += `<option value="${a.id}">${a.name}</option>`);
+    const listEl = document.getElementById('albumList');
+    if (albums.length === 0) {
+      listEl.innerHTML = '<p style="color:#999;">ยังไม่มีอัลบั้ม</p>';
+    } else {
+      listEl.innerHTML = albums.map(a =>
+        `<div style="padding:8px 0; border-bottom:1px solid #eee; display:flex; justify-content:space-between; align-items:center;">
+          <span>${a.name}</span>
+          <span style="font-size:12px; color:#999;">${a.id}</span>
+        </div>`).join('');
+    }
+    log(`โหลดอัลบั้ม ${albums.length} รายการ`, 'ok');
+  } catch(e) {
+    log('โหลดอัลบั้มไม่สำเร็จ: ' + e.message, 'err');
   }
-}
-
-function renderAlbums() {
-  const el = document.getElementById('albumList');
-  if (state.albums.length === 0) {
-    el.innerHTML = '<div class="empty"><div class="empty-icon">📭</div><p>ไม่พบอัลบั้ม</p></div>';
-    return;
-  }
-  el.innerHTML = '<div class="album-grid">' +
-    state.albums.map(a => `
-      <div class="album-card" onclick="copyAlbumId('${a.id}')">
-        <h4>${esc(a.name)}</h4>
-        <p>${a.type || 'normal'}</p>
-        <div class="album-id">ID: ${a.id}</div>
-        <div class="album-count">${a.count || 0} รูป</div>
-      </div>
-    `).join('') +
-    '</div>';
-}
-
-function updateAlbumSelect() {
-  const sel = document.getElementById('fAlbum');
-  sel.innerHTML = '<option value="">— โพสต์ลง Feed —</option>' +
-    state.albums.map(a => `<option value="${a.id}">${esc(a.name)} (${a.count||0} รูป)</option>`).join('');
-}
-
-function copyAlbumId(id) {
-  navigator.clipboard.writeText(id);
-  toast(`คัดลอก Album ID: ${id}`, 'info');
 }
 
 async function createAlbum() {
-  if (!state.connected) { toast('เชื่อมต่อ Facebook ก่อน','error'); return; }
-
+  const pageId = document.getElementById('pageId').value.trim();
+  const token = document.getElementById('token').value.trim();
   const name = document.getElementById('newAlbumName').value.trim();
   const desc = document.getElementById('newAlbumDesc').value.trim();
-  if (!name) { toast('ใส่ชื่ออัลบั้ม','error'); return; }
-
+  if (!isConnected) { alert('กรุณาเชื่อมต่อ Facebook ก่อน'); return; }
+  if (!name) { alert('กรุณากรอกชื่ออัลบั้ม'); return; }
   try {
-    const res = await fb(`/${state.pageId}/albums`, 'POST', {
-      name, message: desc,
-    });
-    toast(`สร้างอัลบั้ม "${name}" สำเร็จ! ID: ${res.id}`, 'success');
-    log(`📁 สร้างอัลบั้ม "${name}" → ID: ${res.id}`, 'ok');
+    const body = new FormData();
+    body.append('name', name);
+    if (desc) body.append('message', desc);
+    body.append('access_token', token);
+    const r = await fetch(`https://graph.facebook.com/v18.0/${pageId}/albums`, { method:'POST', body });
+    const d = await r.json();
+    if (d.error) throw new Error(d.error.message);
+    log(`สร้างอัลบั้ม "${name}" สำเร็จ (${d.id})`, 'ok');
     document.getElementById('newAlbumName').value = '';
     document.getElementById('newAlbumDesc').value = '';
-    await loadAlbums();
-  } catch(err) {
-    toast('สร้างอัลบั้มไม่ได้: ' + err.message, 'error');
+    loadAlbums();
+  } catch(e) {
+    log('สร้างอัลบั้มไม่สำเร็จ: ' + e.message, 'err');
   }
 }
 
-// ═══════════════════════════════════════
-//   QUEUE MANAGEMENT
-// ═══════════════════════════════════════
-function addPost() {
-  const msg = document.getElementById('fMessage').value.trim();
-  if (!msg) { toast('ใส่ข้อความก่อน','error'); return; }
-
-  const albumId = document.getElementById('fAlbum').value;
-  const albumObj = state.albums.find(a => a.id === albumId);
-
-  const post = {
-    id: Date.now().toString(36),
-    message: msg,
-    imageUrl: document.getElementById('fImage').value.trim(),
-    shopeeLink: document.getElementById('fShopee').value.trim(),
-    albumId: albumId,
-    albumName: albumObj ? albumObj.name : '',
-    schedule: document.getElementById('fSchedule').value,
-    status: 'pending',
-    fbPostId: '',
-    postedAt: '',
+// ── Queue ──
+function buildQueueItem() {
+  const imgMode = document.getElementById('imgTabFile').classList.contains('active') ? 'file' : 'url';
+  const files = imgMode === 'file' ? selectedFiles.filter(Boolean) : [];
+  return {
+    id: Date.now(),
+    message: document.getElementById('postMsg').value.trim(),
+    imgUrl: imgMode === 'url' ? document.getElementById('imgUrl').value.trim() : '',
+    files: files,
+    fileNames: files.map(f => f.name),
+    shopee: document.getElementById('shopeeUrl').value.trim(),
+    album: document.getElementById('albumSelect').value,
+    albumName: document.getElementById('albumSelect').options[document.getElementById('albumSelect').selectedIndex].text,
+    schedTime: document.getElementById('schedTime').value,
+    status: 'รอ',
+    fbId: ''
   };
+}
 
-  state.queue.push(post);
+function addToQueue() {
+  const item = buildQueueItem();
+  if (!item.message && !item.imgUrl && item.files.length === 0) {
+    alert('กรุณากรอกข้อความหรือเลือกรูปภาพ'); return;
+  }
+  queue.push(item);
   renderQueue();
-  clearForm();
-  saveState();
-  toast('เพิ่มในคิวแล้ว', 'success');
+  log(`เพิ่มคิวโพสต์ #${queue.length}`, 'info');
 }
 
 async function addAndPost() {
-  const msg = document.getElementById('fMessage').value.trim();
-  if (!msg) { toast('ใส่ข้อความก่อน','error'); return; }
-  if (!state.connected) { toast('เชื่อมต่อ Facebook ก่อน','error'); return; }
-
-  addPost();
-  const last = state.queue[state.queue.length - 1];
-  await doPost(last);
+  const item = buildQueueItem();
+  if (!item.message && !item.imgUrl && item.files.length === 0) {
+    alert('กรุณากรอกข้อความหรือเลือกรูปภาพ'); return;
+  }
+  if (!isConnected) { alert('กรุณาเชื่อมต่อ Facebook ก่อน'); return; }
+  queue.push(item);
   renderQueue();
-  renderPosted();
-  saveState();
+  await postItem(item);
 }
 
 function clearForm() {
-  document.getElementById('fMessage').value = '';
-  document.getElementById('fImage').value = '';
-  document.getElementById('fShopee').value = '';
-  document.getElementById('fAlbum').value = '';
-  document.getElementById('fSchedule').value = '';
+  document.getElementById('postMsg').value = '';
+  document.getElementById('imgUrl').value = '';
+  document.getElementById('shopeeUrl').value = '';
+  document.getElementById('schedTime').value = '';
+  document.getElementById('albumSelect').value = '';
+  selectedFiles = [];
+  document.getElementById('previewGrid').innerHTML = '';
 }
 
-function renderQueue() {
-  const body = document.getElementById('queueBody');
-  const pending = state.queue.filter(p => p.status === 'pending' || p.status === 'error');
-  document.getElementById('queueCount').textContent = pending.length;
+// ── Posting ──
+async function postItem(item) {
+  const pageId = document.getElementById('pageId').value.trim();
+  const token = document.getElementById('token').value.trim();
+  item.status = 'กำลังโพสต์';
+  renderQueue();
 
-  if (pending.length === 0) {
-    body.innerHTML = '<tr><td colspan="8"><div class="empty"><div class="empty-icon">📭</div><p>ยังไม่มีโพสต์ในคิว</p></div></td></tr>';
-    return;
-  }
-
-  body.innerHTML = pending.map(p => `
-    <tr>
-      <td><input type="checkbox" class="row-check" data-id="${p.id}" /></td>
-      <td title="${esc(p.message)}">${esc(p.message.substring(0,50))}${p.message.length>50?'...':''}</td>
-      <td>${p.imageUrl ? '🖼️' : '—'}</td>
-      <td>${p.shopeeLink ? `<a href="${esc(p.shopeeLink)}" class="link-shopee" target="_blank">🛒 ลิงก์</a>` : '—'}</td>
-      <td>${p.albumName ? `<span class="badge badge-album">📚 ${esc(p.albumName)}</span>` : '— Feed —'}</td>
-      <td>${p.schedule ? formatDate(p.schedule) : 'ทันที'}</td>
-      <td><span class="badge badge-${p.status}">${p.status}</span></td>
-      <td>
-        <button class="btn btn-sm btn-primary" onclick="postOne('${p.id}')">🚀</button>
-        <button class="btn btn-sm btn-danger" onclick="removeOne('${p.id}')">✕</button>
-      </td>
-    </tr>
-  `).join('');
-}
-
-function renderPosted() {
-  const body = document.getElementById('postedBody');
-  document.getElementById('postedCount').textContent = state.posted.length;
-
-  if (state.posted.length === 0) {
-    body.innerHTML = '<tr><td colspan="6"><div class="empty"><div class="empty-icon">📭</div><p>ยังไม่มีโพสต์</p></div></td></tr>';
-    return;
-  }
-
-  body.innerHTML = state.posted.slice().reverse().map(p => `
-    <tr>
-      <td><input type="checkbox" class="row-check-posted" data-id="${p.id}" /></td>
-      <td title="${esc(p.message)}">${esc(p.message.substring(0,40))}${p.message.length>40?'...':''}</td>
-      <td><code style="font-size:11px;color:var(--text-3);">${p.fbPostId||'—'}</code></td>
-      <td style="font-size:12px;color:var(--text-2);">${p.postedAt || '—'}</td>
-      <td><span class="badge badge-${p.status==='deleted'?'delete':p.status}">${p.status}</span></td>
-      <td>
-        <button class="btn btn-sm btn-danger" onclick="deleteOne('${p.id}')" ${!p.fbPostId||p.status==='deleted'?'disabled style="opacity:.4"':''}>🗑️</button>
-      </td>
-    </tr>
-  `).join('');
-}
-
-// ═══════════════════════════════════════
-//   POSTING
-// ═══════════════════════════════════════
-async function doPost(post) {
-  if (!state.connected) { toast('เชื่อมต่อ Facebook ก่อน','error'); return; }
-
-  let text = post.message;
-  if (post.shopeeLink) {
-    text += `\n\n🛒 สั่งซื้อได้ที่: ${post.shopeeLink}`;
-  }
-
-  log(`📤 กำลังโพสต์: "${post.message.substring(0,40)}..."`, 'info');
+  const fullMsg = item.message + (item.shopee ? '\n\n🛒 ' + item.shopee : '');
 
   try {
     let result;
-
-    // มีรูป + มีอัลบั้ม → ลงอัลบั้ม
-    if (post.imageUrl && post.albumId) {
-      result = await fb(`/${post.albumId}/photos`, 'POST', {
-        message: text, url: post.imageUrl,
-      });
+    if (item.files && item.files.length > 0) {
+      // ── อัพโหลดจากไฟล์ (NEW) ──
+      result = await postWithFiles(pageId, token, fullMsg, item.files, item.album);
+    } else if (item.imgUrl) {
+      // ── โพสต์ด้วย URL ──
+      result = await postWithUrl(pageId, token, fullMsg, item.imgUrl, item.album);
+    } else {
+      // ── โพสต์ข้อความอย่างเดียว ──
+      result = await postText(pageId, token, fullMsg);
     }
-    // มีรูป ไม่มีอัลบั้ม → ลง feed
-    else if (post.imageUrl) {
-      result = await fb(`/${state.pageId}/photos`, 'POST', {
-        message: text, url: post.imageUrl,
-      });
-    }
-    // ไม่มีรูป → ลง feed
-    else {
-      const body = { message: text };
-      if (post.shopeeLink) body.link = post.shopeeLink;
-      result = await fb(`/${state.pageId}/feed`, 'POST', body);
-    }
-
-    const fbId = result.id || result.post_id;
-    post.status = 'posted';
-    post.fbPostId = fbId;
-    post.postedAt = new Date().toLocaleString('th-TH');
-
-    // ย้ายไป posted
-    state.queue = state.queue.filter(q => q.id !== post.id);
-    state.posted.push(post);
-
-    log(`✅ โพสต์สำเร็จ! FB ID: ${fbId}`, 'ok');
-    toast('โพสต์สำเร็จ!', 'success');
-  } catch(err) {
-    post.status = 'error';
-    log(`❌ โพสต์ล้มเหลว: ${err.message}`, 'err');
-    toast('โพสต์ไม่สำเร็จ: ' + err.message, 'error');
-  }
-
-  saveState();
-}
-
-async function postOne(id) {
-  const post = state.queue.find(p => p.id === id);
-  if (!post) return;
-  await doPost(post);
-  renderQueue();
-  renderPosted();
-}
-
-async function postSelected() {
-  const checks = document.querySelectorAll('#queueBody .row-check:checked');
-  if (checks.length === 0) { toast('เลือกโพสต์ก่อน','error'); return; }
-  if (!state.connected) { toast('เชื่อมต่อ Facebook ก่อน','error'); return; }
-
-  for (const chk of checks) {
-    const post = state.queue.find(p => p.id === chk.dataset.id);
-    if (post && post.status === 'pending') {
-      await doPost(post);
-      await sleep(3000);
-    }
+    item.status = 'สำเร็จ';
+    item.fbId = result.id || result.post_id || '';
+    log(`โพสต์สำเร็จ! Post ID: ${item.fbId}`, 'ok');
+    posted.push({ ...item, postedAt: new Date().toLocaleString('th-TH') });
+    renderPosted();
+  } catch(e) {
+    item.status = 'ผิดพลาด';
+    log('โพสต์ไม่สำเร็จ: ' + e.message, 'err');
   }
   renderQueue();
-  renderPosted();
 }
 
-// ═══════════════════════════════════════
-//   DELETE
-// ═══════════════════════════════════════
-async function deleteOne(id) {
-  if (!confirm('ยืนยันลบโพสต์นี้จาก Facebook?')) return;
+async function postWithFiles(pageId, token, message, files, albumId) {
+  const validFiles = files.filter(Boolean);
+  if (validFiles.length === 0) throw new Error('ไม่มีไฟล์รูปที่ถูกต้อง');
 
-  const post = state.posted.find(p => p.id === id);
-  if (!post || !post.fbPostId) return;
+  const endpoint = albumId
+    ? `https://graph.facebook.com/v18.0/${albumId}/photos`
+    : `https://graph.facebook.com/v18.0/${pageId}/photos`;
 
-  log(`🗑️ กำลังลบ FB ID: ${post.fbPostId}...`, 'warn');
-
-  try {
-    await fb(`/${post.fbPostId}`, 'DELETE');
-    post.status = 'deleted';
-    log(`✅ ลบสำเร็จ! FB ID: ${post.fbPostId}`, 'ok');
-    toast('ลบโพสต์สำเร็จ!', 'success');
-  } catch(err) {
-    log(`❌ ลบไม่ได้: ${err.message}`, 'err');
-    toast('ลบไม่สำเร็จ: ' + err.message, 'error');
-  }
-
-  saveState();
-  renderPosted();
-}
-
-async function deleteSelected() {
-  const checks = document.querySelectorAll('#postedBody .row-check-posted:checked');
-  if (checks.length === 0) { toast('เลือกโพสต์ที่ต้องการลบ','error'); return; }
-  if (!confirm(`ยืนยันลบ ${checks.length} โพสต์จาก Facebook?`)) return;
-
-  for (const chk of checks) {
-    const post = state.posted.find(p => p.id === chk.dataset.id);
-    if (post && post.fbPostId && post.status !== 'deleted') {
-      try {
-        await fb(`/${post.fbPostId}`, 'DELETE');
-        post.status = 'deleted';
-        log(`✅ ลบ ${post.fbPostId} สำเร็จ`, 'ok');
-      } catch(err) {
-        log(`❌ ลบ ${post.fbPostId} ไม่ได้: ${err.message}`, 'err');
-      }
-      await sleep(2000);
+  if (validFiles.length === 1) {
+    // โพสต์รูปเดียว
+    const body = new FormData();
+    body.append('source', validFiles[0]);
+    body.append('message', message);
+    body.append('access_token', token);
+    const r = await fetch(endpoint, { method: 'POST', body });
+    const d = await r.json();
+    if (d.error) throw new Error(d.error.message);
+    return d;
+  } else {
+    // โพสต์หลายรูป (multi-photo post)
+    // ขั้น 1: อัพโหลดรูปแบบ unpublished
+    const photoIds = [];
+    for (const file of validFiles) {
+      const body = new FormData();
+      body.append('source', file);
+      body.append('published', 'false');
+      body.append('access_token', token);
+      const r = await fetch(`https://graph.facebook.com/v18.0/${pageId}/photos`, { method:'POST', body });
+      const d = await r.json();
+      if (d.error) throw new Error(d.error.message);
+      photoIds.push({ media_fbid: d.id });
+      log(`อัพโหลดรูป ${file.name} สำเร็จ (${d.id})`, 'info');
     }
+    // ขั้น 2: สร้างโพสต์รวมรูป
+    const body = new FormData();
+    body.append('message', message);
+    body.append('access_token', token);
+    photoIds.forEach((p, i) => body.append(`attached_media[${i}]`, JSON.stringify(p)));
+    const r = await fetch(`https://graph.facebook.com/v18.0/${pageId}/feed`, { method:'POST', body });
+    const d = await r.json();
+    if (d.error) throw new Error(d.error.message);
+    return d;
   }
-
-  toast('ลบเสร็จแล้ว', 'success');
-  saveState();
-  renderPosted();
 }
 
-// ═══════════════════════════════════════
-//   QUEUE HELPERS
-// ═══════════════════════════════════════
-function removeOne(id) {
-  state.queue = state.queue.filter(p => p.id !== id);
-  saveState();
-  renderQueue();
+async function postWithUrl(pageId, token, message, imgUrl, albumId) {
+  const endpoint = albumId
+    ? `https://graph.facebook.com/v18.0/${albumId}/photos`
+    : `https://graph.facebook.com/v18.0/${pageId}/photos`;
+  const body = new FormData();
+  body.append('url', imgUrl);
+  body.append('message', message);
+  body.append('access_token', token);
+  const r = await fetch(endpoint, { method:'POST', body });
+  const d = await r.json();
+  if (d.error) throw new Error(d.error.message);
+  return d;
 }
 
-function removeSelected() {
-  const checks = document.querySelectorAll('#queueBody .row-check:checked');
-  const ids = [...checks].map(c => c.dataset.id);
-  state.queue = state.queue.filter(p => !ids.includes(p.id));
-  saveState();
+async function postText(pageId, token, message) {
+  const body = new FormData();
+  body.append('message', message);
+  body.append('access_token', token);
+  const r = await fetch(`https://graph.facebook.com/v18.0/${pageId}/feed`, { method:'POST', body });
+  const d = await r.json();
+  if (d.error) throw new Error(d.error.message);
+  return d;
+}
+
+// ── Queue render ──
+function renderQueue() {
+  document.getElementById('queueCount').textContent = queue.length;
+  const tbody = document.getElementById('queueBody');
+  if (queue.length === 0) {
+    tbody.innerHTML = '<tr><td colspan="8" style="text-align:center; color:#999; padding:20px;">📭 ยังไม่มีโพสต์ในคิว</td></tr>';
+    return;
+  }
+  tbody.innerHTML = queue.map((item, i) => `
+    <tr>
+      <td><input type="checkbox" class="q-check" data-idx="${i}"></td>
+      <td style="max-width:200px; word-break:break-word;">${item.message || '—'}</td>
+      <td>${item.files && item.files.length > 0 ? '📁 ' + item.fileNames.join(', ') : (item.imgUrl ? '🔗' : '—')}</td>
+      <td>${item.shopee ? '🛒' : '—'}</td>
+      <td>${item.album ? item.albumName : 'Feed'}</td>
+      <td>${item.schedTime || 'ทันที'}</td>
+      <td><span class="badge ${statusClass(item.status)}">${item.status}</span></td>
+      <td>
+        <button class="btn btn-primary btn-sm" onclick="postSingle(${i})">▶</button>
+        <button class="btn btn-danger btn-sm" onclick="removeQueue(${i})">✕</button>
+      </td>
+    </tr>`).join('');
+}
+
+function statusClass(s) {
+  if (s === 'สำเร็จ') return 'badge-ok';
+  if (s === 'ผิดพลาด') return 'badge-err';
+  if (s === 'กำลังโพสต์') return 'badge-posting';
+  return 'badge-wait';
+}
+
+async function postSingle(i) {
+  if (!isConnected) { alert('กรุณาเชื่อมต่อ Facebook ก่อน'); return; }
+  await postItem(queue[i]);
+}
+
+function removeQueue(i) {
+  queue.splice(i, 1);
   renderQueue();
-  toast(`ลบ ${ids.length} รายการจากคิว`, 'info');
 }
 
 function selectAllQueue() {
-  document.querySelectorAll('#queueBody .row-check').forEach(c => c.checked = true);
+  document.querySelectorAll('.q-check').forEach(c => c.checked = true);
 }
-function toggleAllQueue(el) {
-  document.querySelectorAll('#queueBody .row-check').forEach(c => c.checked = el.checked);
+
+async function postSelected() {
+  if (!isConnected) { alert('กรุณาเชื่อมต่อ Facebook ก่อน'); return; }
+  const checks = Array.from(document.querySelectorAll('.q-check:checked'));
+  for (const c of checks) await postItem(queue[+c.dataset.idx]);
 }
+
+function deleteSelected() {
+  const idxs = Array.from(document.querySelectorAll('.q-check:checked')).map(c => +c.dataset.idx).sort((a,b) => b-a);
+  idxs.forEach(i => queue.splice(i, 1));
+  renderQueue();
+}
+
+// ── Posted render ──
+function renderPosted() {
+  document.getElementById('postedCount').textContent = posted.length;
+  const tbody = document.getElementById('postedBody');
+  if (posted.length === 0) {
+    tbody.innerHTML = '<tr><td colspan="6" style="text-align:center; color:#999; padding:20px;">📭 ยังไม่มีโพสต์</td></tr>';
+    return;
+  }
+  tbody.innerHTML = posted.map((p, i) => `
+    <tr>
+      <td><input type="checkbox" class="p-check" data-idx="${i}"></td>
+      <td style="max-width:200px; word-break:break-word;">${p.message || '—'}</td>
+      <td><a href="https://facebook.com/${p.fbId}" target="_blank" style="color:#1877f2;">${p.fbId || '—'}</a></td>
+      <td>${p.postedAt}</td>
+      <td><span class="badge badge-ok">สำเร็จ</span></td>
+      <td><button class="btn btn-danger btn-sm" onclick="removeFbPost(${i})">🗑️</button></td>
+    </tr>`).join('');
+}
+
 function selectAllPosted() {
-  document.querySelectorAll('#postedBody .row-check-posted').forEach(c => c.checked = true);
-}
-function toggleAllPosted(el) {
-  document.querySelectorAll('#postedBody .row-check-posted').forEach(c => c.checked = el.checked);
+  document.querySelectorAll('.p-check').forEach(c => c.checked = true);
 }
 
-// ═══════════════════════════════════════
-//   CONFIG EXPORT/IMPORT
-// ═══════════════════════════════════════
-function exportConfig() {
-  const data = {
-    pageId: document.getElementById('pageId').value,
-    token: document.getElementById('accessToken').value,
-    queue: state.queue,
-    posted: state.posted,
-  };
-  const blob = new Blob([JSON.stringify(data,null,2)], {type:'application/json'});
-  const a = document.createElement('a');
-  a.href = URL.createObjectURL(blob);
-  a.download = 'fb-poster-config.json';
-  a.click();
-  toast('บันทึกค่าสำเร็จ','success');
-}
-
-function importConfig() {
-  const input = document.createElement('input');
-  input.type = 'file';
-  input.accept = '.json';
-  input.onchange = (e) => {
-    const file = e.target.files[0];
-    if (!file) return;
-    const reader = new FileReader();
-    reader.onload = (ev) => {
+async function deletePosted() {
+  const pageId = document.getElementById('pageId').value.trim();
+  const token = document.getElementById('token').value.trim();
+  const checks = Array.from(document.querySelectorAll('.p-check:checked'));
+  for (const c of checks.reverse()) {
+    const p = posted[+c.dataset.idx];
+    if (p.fbId) {
       try {
-        const data = JSON.parse(ev.target.result);
-        if (data.pageId) document.getElementById('pageId').value = data.pageId;
-        if (data.token) document.getElementById('accessToken').value = data.token;
-        if (data.queue) state.queue = data.queue;
-        if (data.posted) state.posted = data.posted;
-        saveState();
-        renderQueue();
-        renderPosted();
-        toast('โหลดค่าสำเร็จ','success');
-      } catch(err) {
-        toast('ไฟล์ไม่ถูกต้อง','error');
-      }
-    };
-    reader.readAsText(file);
+        const r = await fetch(`https://graph.facebook.com/v18.0/${p.fbId}?access_token=${token}`, { method:'DELETE' });
+        const d = await r.json();
+        log(`ลบโพสต์ ${p.fbId} ${d.success ? 'สำเร็จ' : 'ไม่สำเร็จ'}`, d.success ? 'ok' : 'err');
+      } catch(e) { log('ลบโพสต์ไม่สำเร็จ: ' + e.message, 'err'); }
+    }
+    posted.splice(+c.dataset.idx, 1);
+  }
+  renderPosted();
+}
+
+async function removeFbPost(i) {
+  const pageId = document.getElementById('pageId').value.trim();
+  const token = document.getElementById('token').value.trim();
+  const p = posted[i];
+  if (p.fbId && token) {
+    try {
+      await fetch(`https://graph.facebook.com/v18.0/${p.fbId}?access_token=${token}`, { method:'DELETE' });
+      log(`ลบโพสต์ ${p.fbId}`, 'ok');
+    } catch(e) {}
+  }
+  posted.splice(i, 1);
+  renderPosted();
+}
+
+// ── Log ──
+function log(msg, type='info') {
+  const el = document.getElementById('log');
+  const line = document.createElement('div');
+  line.className = `log-line log-${type}`;
+  line.textContent = `[${new Date().toLocaleTimeString('th-TH')}] ${msg}`;
+  el.appendChild(line);
+  el.scrollTop = el.scrollHeight;
+}
+
+// ── Save/Load Config ──
+function saveConfig() {
+  const cfg = {
+    pageId: document.getElementById('pageId').value,
+    token: document.getElementById('token').value
   };
-  input.click();
+  localStorage.setItem('fbposter_cfg', JSON.stringify(cfg));
+  log('บันทึกค่าแล้ว', 'ok');
 }
 
-// ═══════════════════════════════════════
-//   UTILS
-// ═══════════════════════════════════════
-function log(msg, type='') {
-  const box = document.getElementById('logBox');
-  const cls = type === 'ok' ? 'log-ok' : type === 'err' ? 'log-err' : type === 'info' ? 'log-info' : type === 'warn' ? 'log-warn' : '';
-  const time = new Date().toLocaleTimeString('th-TH');
-  box.innerHTML += `\n<span class="${cls}">[${time}] ${esc(msg)}</span>`;
-  box.scrollTop = box.scrollHeight;
+function loadConfig() {
+  const cfg = JSON.parse(localStorage.getItem('fbposter_cfg') || '{}');
+  if (cfg.pageId) document.getElementById('pageId').value = cfg.pageId;
+  if (cfg.token) document.getElementById('token').value = cfg.token;
+  log('โหลดค่าแล้ว', 'ok');
 }
 
-function toast(msg, type='info') {
-  const el = document.createElement('div');
-  el.className = `toast toast-${type}`;
-  el.textContent = msg;
-  document.getElementById('toastContainer').appendChild(el);
-  setTimeout(() => el.remove(), 4000);
-}
-
-function esc(str) {
-  const d = document.createElement('div');
-  d.textContent = str;
-  return d.innerHTML;
-}
-
-function formatDate(d) {
-  return new Date(d).toLocaleString('th-TH', { dateStyle:'short', timeStyle:'short' });
-}
-
-function sleep(ms) {
-  return new Promise(r => setTimeout(r, ms));
-}
-
-// ═══════════════════════════════════════
-//   INIT
-// ═══════════════════════════════════════
-loadState();
-renderQueue();
-renderPosted();
+// Auto-load config on start
+loadConfig();
 </script>
 </body>
 </html>
