@@ -71,22 +71,31 @@
   <span style="font-size:22px;">📘</span>
   <h1>FB Bulk Poster Pro</h1>
   <span style="font-size:12px; opacity:0.8; margin-left:6px;">โพสต์ Facebook อัตโนมัติ + อัลบั้ม + Shopee</span>
-  <div style="margin-left:auto; display:flex; gap:8px;">
-    <button class="btn btn-secondary btn-sm" onclick="saveConfig()">💾 บันทึกค่า</button>
-    <button class="btn btn-secondary btn-sm" onclick="loadConfig()">📂 โหลดค่า</button>
-  </div>
 </header>
 
 <div class="container">
 
   <!-- Connect -->
   <div class="card">
+    <!-- Saved pages row -->
+    <div style="display:flex; gap:8px; align-items:center; margin-bottom:12px; flex-wrap:wrap;">
+      <span style="font-size:13px; color:#606770; white-space:nowrap;">📌 เพจที่บันทึก:</span>
+      <select id="savedPagesSelect" style="flex:1; min-width:160px;" onchange="loadSavedPage()">
+        <option value="">— เลือกเพจที่บันทึก —</option>
+      </select>
+      <button class="btn btn-success btn-sm" onclick="saveCurrentPage()" title="บันทึกเพจนี้">💾 บันทึกเพจ</button>
+      <button class="btn btn-danger btn-sm" onclick="deleteSavedPage()" title="ลบเพจที่เลือก">🗑️</button>
+    </div>
     <div class="row">
-      <div style="flex:1; min-width:200px;">
+      <div style="flex:1; min-width:160px;">
+        <label>ชื่อเพจ (สำหรับจดจำ)</label>
+        <input type="text" id="pageName" placeholder="เช่น ร้านหลัก">
+      </div>
+      <div style="flex:1; min-width:160px;">
         <label>Facebook Page ID</label>
         <input type="text" id="pageId" placeholder="เช่น 123456789">
       </div>
-      <div style="flex:2; min-width:260px;">
+      <div style="flex:2; min-width:220px;">
         <label>Facebook Access Token</label>
         <input type="text" id="token" placeholder="EAAxxxxxxxxx...">
       </div>
@@ -126,13 +135,24 @@
       <!-- Rotating captions -->
       <div id="capModeRotate" style="display:none;">
         <div style="background:#f0f7ff; border:1.5px dashed #1877f2; border-radius:8px; padding:12px;">
+          <!-- Saved caption sets row -->
+          <div style="display:flex; gap:6px; align-items:center; margin-bottom:10px; flex-wrap:wrap; padding-bottom:10px; border-bottom:1px solid #d0e8ff;">
+            <span style="font-size:12px; color:#606770; white-space:nowrap;">📂 ชุดแคปชั่น:</span>
+            <select id="savedCapsSelect" style="flex:1; min-width:140px; font-size:13px;" onchange="previewSavedCap()">
+              <option value="">— เลือกชุดที่บันทึก —</option>
+            </select>
+            <button class="btn btn-secondary btn-sm" onclick="loadSavedCap()">โหลด</button>
+            <button class="btn btn-danger btn-sm" onclick="deleteSavedCap()">🗑️</button>
+          </div>
           <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:8px;">
             <span style="font-size:13px; color:#1877f2; font-weight:600;">📋 รายการแคปชั่น (<span id="capCount">0</span> รายการ)</span>
-            <div style="display:flex; gap:6px;">
-              <button class="btn btn-secondary btn-sm" onclick="clearCaptions()">ล้างทั้งหมด</button>
+            <div style="display:flex; gap:6px; flex-wrap:wrap;">
+              <input type="text" id="capSetName" placeholder="ชื่อชุดแคปชั่น" style="width:160px; font-size:13px;">
+              <button class="btn btn-success btn-sm" onclick="saveCapSet()">💾 บันทึกชุด</button>
+              <button class="btn btn-secondary btn-sm" onclick="clearCaptions()">ล้าง</button>
             </div>
           </div>
-          <textarea id="capPoolInput" placeholder="พิมพ์แคปชั่น 1 บรรทัดต่อ 1 แคปชั่น หรือคั่นด้วย ---&#10;ตัวอย่าง:&#10;สินค้าคุณภาพดี ราคาถูก&#10;---&#10;จัดส่งทุกวัน ทั่วประเทศ&#10;---&#10;สั่งได้เลย มีของพร้อมส่ง" style="min-height:120px;" oninput="updateCapCount()"></textarea>
+          <textarea id="capPoolInput" placeholder="พิมพ์แคปชั่น คั่นด้วย ---&#10;ตัวอย่าง:&#10;สินค้าคุณภาพดี ราคาถูก&#10;---&#10;จัดส่งทุกวัน ทั่วประเทศ&#10;---&#10;สั่งได้เลย มีของพร้อมส่ง" style="min-height:120px;" oninput="updateCapCount()"></textarea>
           <div style="display:flex; gap:8px; margin-top:10px; align-items:center; flex-wrap:wrap;">
             <div style="display:flex; align-items:center; gap:6px;">
               <label style="margin:0; white-space:nowrap;">จำนวนโพสต์ที่ต้องการเพิ่ม:</label>
@@ -290,8 +310,7 @@ function switchCapMode(mode) {
 }
 
 function getCaptions() {
-  const raw = document.getElementById('capPoolInput').value;
-  return raw.split(/\n---\n|\n---$|^---\n/).map(s => s.trim()).filter(Boolean);
+  return getCaptionsFromText(document.getElementById('capPoolInput').value);
 }
 
 function updateCapCount() {
@@ -741,6 +760,119 @@ async function removeFbPost(i) {
   renderPosted();
 }
 
+// ── Saved Pages ──
+function getSavedPages() {
+  return JSON.parse(localStorage.getItem('fbposter_pages') || '[]');
+}
+function setSavedPages(pages) {
+  localStorage.setItem('fbposter_pages', JSON.stringify(pages));
+}
+function renderSavedPages() {
+  const pages = getSavedPages();
+  const sel = document.getElementById('savedPagesSelect');
+  const cur = sel.value;
+  sel.innerHTML = '<option value="">— เลือกเพจที่บันทึก —</option>';
+  pages.forEach((p, i) => sel.innerHTML += `<option value="${i}">${p.name || p.pageId}</option>`);
+  if (cur) sel.value = cur;
+}
+function saveCurrentPage() {
+  const name = document.getElementById('pageName').value.trim();
+  const pageId = document.getElementById('pageId').value.trim();
+  const token = document.getElementById('token').value.trim();
+  if (!pageId || !token) { alert('กรุณากรอก Page ID และ Token'); return; }
+  const pages = getSavedPages();
+  const existing = pages.findIndex(p => p.pageId === pageId);
+  const entry = { name: name || pageId, pageId, token };
+  if (existing >= 0) pages[existing] = entry;
+  else pages.push(entry);
+  setSavedPages(pages);
+  renderSavedPages();
+  log(`บันทึกเพจ "${entry.name}" แล้ว`, 'ok');
+}
+function loadSavedPage() {
+  const idx = document.getElementById('savedPagesSelect').value;
+  if (idx === '') return;
+  const pages = getSavedPages();
+  const p = pages[idx];
+  if (!p) return;
+  document.getElementById('pageName').value = p.name || '';
+  document.getElementById('pageId').value = p.pageId;
+  document.getElementById('token').value = p.token;
+  log(`โหลดเพจ "${p.name}" แล้ว — กดเชื่อมต่อเพื่อใช้งาน`, 'info');
+}
+function deleteSavedPage() {
+  const idx = document.getElementById('savedPagesSelect').value;
+  if (idx === '') { alert('กรุณาเลือกเพจที่ต้องการลบ'); return; }
+  const pages = getSavedPages();
+  const name = pages[idx].name;
+  pages.splice(idx, 1);
+  setSavedPages(pages);
+  renderSavedPages();
+  log(`ลบเพจ "${name}" แล้ว`, 'ok');
+}
+
+// ── Saved Caption Sets ──
+function getSavedCaps() {
+  return JSON.parse(localStorage.getItem('fbposter_caps') || '[]');
+}
+function setSavedCaps(caps) {
+  localStorage.setItem('fbposter_caps', JSON.stringify(caps));
+}
+function renderSavedCaps() {
+  const caps = getSavedCaps();
+  const sel = document.getElementById('savedCapsSelect');
+  const cur = sel.value;
+  sel.innerHTML = '<option value="">— เลือกชุดที่บันทึก —</option>';
+  caps.forEach((c, i) => sel.innerHTML += `<option value="${i}">${c.name} (${c.captions.split('---').length} แคปชั่น)</option>`);
+  if (cur) sel.value = cur;
+}
+function saveCapSet() {
+  const name = document.getElementById('capSetName').value.trim();
+  const captions = document.getElementById('capPoolInput').value.trim();
+  if (!name) { alert('กรุณากรอกชื่อชุดแคปชั่น'); return; }
+  if (!captions) { alert('กรุณากรอกแคปชั่นก่อน'); return; }
+  const caps = getSavedCaps();
+  const existing = caps.findIndex(c => c.name === name);
+  if (existing >= 0) caps[existing] = { name, captions };
+  else caps.push({ name, captions });
+  setSavedCaps(caps);
+  renderSavedCaps();
+  log(`บันทึกชุดแคปชั่น "${name}" แล้ว`, 'ok');
+}
+function loadSavedCap() {
+  const idx = document.getElementById('savedCapsSelect').value;
+  if (idx === '') { alert('กรุณาเลือกชุดแคปชั่นก่อน'); return; }
+  const caps = getSavedCaps();
+  const c = caps[idx];
+  if (!c) return;
+  document.getElementById('capPoolInput').value = c.captions;
+  document.getElementById('capSetName').value = c.name;
+  capIdx = 0;
+  document.getElementById('capIdxDisplay').textContent = '1';
+  updateCapCount();
+  log(`โหลดชุดแคปชั่น "${c.name}" แล้ว`, 'ok');
+}
+function previewSavedCap() {
+  const idx = document.getElementById('savedCapsSelect').value;
+  if (idx === '') return;
+  const caps = getSavedCaps();
+  const c = caps[idx];
+  if (c) log(`ชุด "${c.name}" — ${getCaptionsFromText(c.captions).length} แคปชั่น`, 'info');
+}
+function deleteSavedCap() {
+  const idx = document.getElementById('savedCapsSelect').value;
+  if (idx === '') { alert('กรุณาเลือกชุดที่ต้องการลบ'); return; }
+  const caps = getSavedCaps();
+  const name = caps[idx].name;
+  caps.splice(idx, 1);
+  setSavedCaps(caps);
+  renderSavedCaps();
+  log(`ลบชุดแคปชั่น "${name}" แล้ว`, 'ok');
+}
+function getCaptionsFromText(text) {
+  return text.split(/\n---\n|\n---$|^---\n/).map(s => s.trim()).filter(Boolean);
+}
+
 // ── Log ──
 function log(msg, type='info') {
   const el = document.getElementById('log');
@@ -751,25 +883,11 @@ function log(msg, type='info') {
   el.scrollTop = el.scrollHeight;
 }
 
-// ── Save/Load Config ──
-function saveConfig() {
-  const cfg = {
-    pageId: document.getElementById('pageId').value,
-    token: document.getElementById('token').value
-  };
-  localStorage.setItem('fbposter_cfg', JSON.stringify(cfg));
-  log('บันทึกค่าแล้ว', 'ok');
-}
+// ── Init ──
+renderSavedPages();
+renderSavedCaps();
+log('พร้อมใช้งาน', 'info');
 
-function loadConfig() {
-  const cfg = JSON.parse(localStorage.getItem('fbposter_cfg') || '{}');
-  if (cfg.pageId) document.getElementById('pageId').value = cfg.pageId;
-  if (cfg.token) document.getElementById('token').value = cfg.token;
-  log('โหลดค่าแล้ว', 'ok');
-}
-
-// Auto-load config on start
-loadConfig();
 </script>
 </body>
 </html>
