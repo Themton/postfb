@@ -498,6 +498,38 @@ function buildQueueItem(overrideMsg) {
 }
 
 function buildBulkItems() {
+  const imgMode = document.getElementById('imgTabFile').classList.contains('active') ? 'file' : 'url';
+  const files = imgMode === 'file' ? selectedFiles.filter(Boolean) : [];
+
+  // โหมดไฟล์ + มีรูปหลายรูป → แยกทีละรูป ทีละโพสต์
+  if (imgMode === 'file' && files.length > 0) {
+    const caps = isRotateMode() ? getCaptions() : null;
+    if (caps !== null && caps.length === 0) { alert('กรุณากรอกแคปชั่นอย่างน้อย 1 รายการ'); return null; }
+    const items = files.map((file, i) => {
+      const msg = caps ? caps[(capIdx + i) % caps.length] : document.getElementById('postMsg').value.trim();
+      return {
+        id: Date.now() + i,
+        message: msg,
+        imgUrl: '',
+        files: [file],
+        fileNames: [file.name],
+        shopee: document.getElementById('shopeeUrl').value.trim(),
+        album: document.getElementById('albumSelect').value,
+        albumName: document.getElementById('albumSelect').options[document.getElementById('albumSelect').selectedIndex].text,
+        schedTime: document.getElementById('schedTime').value,
+        status: 'รอ',
+        fbId: ''
+      };
+    });
+    if (caps) {
+      capIdx = (capIdx + files.length) % caps.length;
+      document.getElementById('capIdxDisplay').textContent = capIdx + 1;
+      updateCapCount();
+    }
+    return items;
+  }
+
+  // โหมด URL หรือข้อความ → ใช้ bulkCount + caption rotate เหมือนเดิม
   if (!isRotateMode()) {
     return [buildQueueItem()];
   }
@@ -506,8 +538,7 @@ function buildBulkItems() {
   const bulk = parseInt(document.getElementById('bulkCount').value) || 1;
   const items = [];
   for (let i = 0; i < bulk; i++) {
-    const cap = caps[(capIdx + i) % caps.length];
-    items.push(buildQueueItem(cap));
+    items.push(buildQueueItem(caps[(capIdx + i) % caps.length]));
   }
   capIdx = (capIdx + bulk) % caps.length;
   document.getElementById('capIdxDisplay').textContent = capIdx + 1;
