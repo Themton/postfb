@@ -550,6 +550,10 @@ function addToQueue() {
   if (!items) return;
   const hasContent = items.every(it => it.message || it.imgUrl || it.files.length > 0);
   if (!hasContent) { alert('กรุณากรอกข้อความหรือเลือกรูปภาพ'); return; }
+  const emptyMsg = items.filter(it => !it.message || !it.message.trim());
+  if (emptyMsg.length > 0) {
+    log(`⚠️ ${emptyMsg.length} โพสต์ไม่มีแคปชั่น — กรุณาตรวจสอบ`, 'err');
+  }
   items.forEach(it => queue.push(it));
   renderQueue();
   log(`เพิ่มคิว ${items.length} โพสต์ (รวมทั้งหมด ${queue.length})`, 'info');
@@ -583,7 +587,15 @@ async function postItem(item) {
   item.status = 'กำลังโพสต์';
   renderQueue();
 
-  const fullMsg = item.message + (item.shopee ? '\n\n🛒 ' + item.shopee : '');
+  const caption = (item.message || '').trim();
+  const fullMsg = caption + (item.shopee ? (caption ? '\n\n🛒 ' : '🛒 ') + item.shopee : '');
+
+  // log แสดงแคปชั่นก่อนโพสต์
+  if (!caption) {
+    log(`⚠️ ${item.fileNames?.[0] || 'โพสต์'} → แคปชั่น: (ว่าง)`, 'err');
+  } else {
+    log(`📝 ${item.fileNames?.[0] || 'โพสต์'} → "${caption.substring(0,50)}${caption.length>50?'...':''}"`, 'info');
+  }
 
   try {
     let result;
