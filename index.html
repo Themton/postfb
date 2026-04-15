@@ -198,7 +198,17 @@
       <div class="grid2" style="margin-top:12px;">
         <div>
           <label>🛒 ลิงก์ Shopee (เว้นว่างได้)</label>
+          <div style="display:flex; gap:6px; margin-bottom:6px; align-items:center; flex-wrap:wrap;">
+            <select id="savedShopeeSelect" style="flex:1; min-width:140px; font-size:13px;" onchange="loadSavedShopee()">
+              <option value="">— เลือกลิงก์ที่บันทึก —</option>
+            </select>
+            <button class="btn btn-success btn-sm" onclick="saveCurrentShopee()">💾</button>
+            <button class="btn btn-danger btn-sm" onclick="deleteSavedShopee()">🗑️</button>
+          </div>
           <input type="text" id="shopeeUrl" placeholder="https://shopee.co.th/...">
+          <div style="display:flex; gap:6px; margin-top:6px; align-items:center;">
+            <input type="text" id="shopeeLinkName" placeholder="ชื่อลิงก์ (เพื่อบันทึก)" style="flex:1; font-size:13px;">
+          </div>
         </div>
         <div>
           <label>📚 อัลบั้ม (เว้นว่าง = feed ปกติ)</label>
@@ -791,6 +801,54 @@ async function removeFbPost(i) {
   renderPosted();
 }
 
+// ── Saved Shopee Links ──
+function getSavedShopee() {
+  return JSON.parse(localStorage.getItem('fbposter_shopee') || '[]');
+}
+function setSavedShopee(links) {
+  localStorage.setItem('fbposter_shopee', JSON.stringify(links));
+}
+function renderSavedShopee() {
+  const links = getSavedShopee();
+  const sel = document.getElementById('savedShopeeSelect');
+  sel.innerHTML = '<option value="">— เลือกลิงก์ที่บันทึก —</option>';
+  links.forEach((l, i) => sel.innerHTML += `<option value="${i}">${l.name}</option>`);
+}
+function saveCurrentShopee() {
+  const name = document.getElementById('shopeeLinkName').value.trim();
+  const url = document.getElementById('shopeeUrl').value.trim();
+  if (!url) { alert('กรุณากรอกลิงก์ Shopee ก่อน'); return; }
+  if (!name) { alert('กรุณากรอกชื่อลิงก์ก่อน'); return; }
+  const links = getSavedShopee();
+  const existing = links.findIndex(l => l.name === name);
+  if (existing >= 0) links[existing] = { name, url };
+  else links.push({ name, url });
+  setSavedShopee(links);
+  renderSavedShopee();
+  log(`บันทึกลิงก์ Shopee "${name}" แล้ว`, 'ok');
+}
+function loadSavedShopee() {
+  const idx = document.getElementById('savedShopeeSelect').value;
+  if (idx === '') return;
+  const links = getSavedShopee();
+  const l = links[idx];
+  if (!l) return;
+  document.getElementById('shopeeUrl').value = l.url;
+  document.getElementById('shopeeLinkName').value = l.name;
+  log(`โหลดลิงก์ "${l.name}" แล้ว`, 'info');
+}
+function deleteSavedShopee() {
+  const idx = document.getElementById('savedShopeeSelect').value;
+  if (idx === '') { alert('กรุณาเลือกลิงก์ที่ต้องการลบ'); return; }
+  const links = getSavedShopee();
+  const name = links[idx].name;
+  links.splice(idx, 1);
+  setSavedShopee(links);
+  renderSavedShopee();
+  document.getElementById('savedShopeeSelect').value = '';
+  log(`ลบลิงก์ "${name}" แล้ว`, 'ok');
+}
+
 // ── Saved Pages ──
 function getSavedPages() {
   return JSON.parse(localStorage.getItem('fbposter_pages') || '[]');
@@ -917,6 +975,7 @@ function log(msg, type='info') {
 // ── Init ──
 renderSavedPages();
 renderSavedCaps();
+renderSavedShopee();
 log('พร้อมใช้งาน', 'info');
 
 </script>
