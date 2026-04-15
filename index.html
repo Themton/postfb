@@ -184,38 +184,13 @@
 
           <!-- File mode -->
           <div id="imgModeFile" style="display:none;">
-            <!-- Upload area (shown when no files) -->
             <div class="upload-area" onclick="document.getElementById('fileInput').click()" id="dropZone">
               <input type="file" id="fileInput" accept="image/*" multiple onchange="handleFileSelect(event)">
               <div style="font-size:32px;">📷</div>
               <p>คลิกหรือลากรูปมาวางที่นี่</p>
-              <p style="color:#999; font-size:12px;">รองรับ JPG, PNG, GIF, WEBP</p>
+              <p style="color:#999; font-size:12px;">รองรับ JPG, PNG, GIF, WEBP — เลือกหลายรูปได้ แต่ละรูปจะเป็นโพสต์แยกกัน</p>
             </div>
-
-            <!-- Image navigator (shown when files selected) -->
-            <div id="imgNavigator" style="display:none;">
-              <!-- Current image preview -->
-              <div style="display:flex; gap:12px; align-items:flex-start;">
-                <div style="flex:1; text-align:center;">
-                  <img id="currentImgPreview" src="" style="max-height:200px; max-width:100%; border-radius:8px; border:1px solid #ddd; object-fit:contain;">
-                </div>
-                <div style="min-width:140px; display:flex; flex-direction:column; gap:8px;">
-                  <div style="background:#f0f7ff; border-radius:8px; padding:10px; text-align:center;">
-                    <div style="font-size:22px; font-weight:700; color:#1877f2;" id="imgCurrent">1</div>
-                    <div style="font-size:12px; color:#606770;">จาก <span id="imgTotal">0</span> รูป</div>
-                  </div>
-                  <div style="display:flex; gap:6px;">
-                    <button class="btn btn-secondary btn-sm" style="flex:1;" onclick="imgNav(-1)">◀ ก่อน</button>
-                    <button class="btn btn-secondary btn-sm" style="flex:1;" onclick="imgNav(1)">ถัดไป ▶</button>
-                  </div>
-                  <div style="font-size:12px; color:#606770; word-break:break-all;" id="imgFileName">—</div>
-                  <button class="btn btn-danger btn-sm" onclick="removeCurrentImg()">🗑️ ลบรูปนี้</button>
-                  <button class="btn btn-secondary btn-sm" onclick="document.getElementById('fileInput').click()">➕ เพิ่มรูป</button>
-                </div>
-              </div>
-              <!-- Thumbnail strip -->
-              <div id="thumbStrip" style="display:flex; gap:6px; flex-wrap:wrap; margin-top:10px;"></div>
-            </div>
+            <div class="preview-grid" id="previewGrid"></div>
           </div>
         </div>
       </div>
@@ -396,80 +371,30 @@ function switchImgTab(mode) {
 }
 
 // ── File upload handler ──
-let imgPointer = 0; // current image index in navigator
-
 function handleFileSelect(e) {
   const files = Array.from(e.target.files).filter(f => f.type.startsWith('image/'));
-  files.forEach(f => selectedFiles.push(f));
-  e.target.value = '';
-  if (selectedFiles.filter(Boolean).length > 0) {
-    imgPointer = Math.min(imgPointer, selectedFiles.filter(Boolean).length - 1);
-    showImgNavigator();
-  }
-}
-
-function showImgNavigator() {
-  const valid = selectedFiles.filter(Boolean);
-  if (valid.length === 0) {
-    document.getElementById('dropZone').style.display = '';
-    document.getElementById('imgNavigator').style.display = 'none';
-    return;
-  }
-  document.getElementById('dropZone').style.display = 'none';
-  document.getElementById('imgNavigator').style.display = '';
-  // clamp pointer
-  if (imgPointer >= valid.length) imgPointer = valid.length - 1;
-  if (imgPointer < 0) imgPointer = 0;
-  const file = valid[imgPointer];
-  document.getElementById('imgCurrent').textContent = imgPointer + 1;
-  document.getElementById('imgTotal').textContent = valid.length;
-  document.getElementById('imgFileName').textContent = file.name;
-  const reader = new FileReader();
-  reader.onload = e => document.getElementById('currentImgPreview').src = e.target.result;
-  reader.readAsDataURL(file);
-  renderThumbStrip(valid);
-}
-
-function renderThumbStrip(valid) {
-  const strip = document.getElementById('thumbStrip');
-  strip.innerHTML = '';
-  valid.forEach((f, i) => {
-    const wrap = document.createElement('div');
-    wrap.style.cssText = `position:relative; width:56px; height:56px; cursor:pointer; border-radius:6px; border:2px solid ${i===imgPointer?'#1877f2':'#ddd'}; overflow:hidden;`;
-    wrap.onclick = () => { imgPointer = i; showImgNavigator(); };
-    const img = document.createElement('img');
-    img.style.cssText = 'width:100%; height:100%; object-fit:cover;';
+  files.forEach(f => {
+    selectedFiles.push(f);
     const reader = new FileReader();
-    reader.onload = e => img.src = e.target.result;
+    reader.onload = (ev) => renderPreview(ev.target.result, selectedFiles.length - 1);
     reader.readAsDataURL(f);
-    wrap.appendChild(img);
-    strip.appendChild(wrap);
   });
+  e.target.value = '';
 }
 
-function imgNav(dir) {
-  const valid = selectedFiles.filter(Boolean);
-  imgPointer = (imgPointer + dir + valid.length) % valid.length;
-  showImgNavigator();
+function renderPreview(src, idx) {
+  const grid = document.getElementById('previewGrid');
+  const item = document.createElement('div');
+  item.className = 'preview-item';
+  item.dataset.idx = idx;
+  item.innerHTML = `<img src="${src}"><button class="remove" onclick="removeFile(${idx})">✕</button>`;
+  grid.appendChild(item);
 }
 
-function removeCurrentImg() {
-  const valid = selectedFiles.filter(Boolean);
-  const file = valid[imgPointer];
-  const realIdx = selectedFiles.indexOf(file);
-  selectedFiles[realIdx] = null;
-  const remaining = selectedFiles.filter(Boolean);
-  if (remaining.length === 0) {
-    imgPointer = 0;
-    document.getElementById('dropZone').style.display = '';
-    document.getElementById('imgNavigator').style.display = 'none';
-  } else {
-    if (imgPointer >= remaining.length) imgPointer = remaining.length - 1;
-    showImgNavigator();
-  }
+function removeFile(idx) {
+  selectedFiles[idx] = null;
+  document.querySelectorAll('.preview-item').forEach(i => { if(+i.dataset.idx === idx) i.remove(); });
 }
-
-function removeFile(idx) { removeCurrentImg(); }
 
 // Drag & drop
 const dropZone = document.getElementById('dropZone');
@@ -477,9 +402,12 @@ dropZone.addEventListener('dragover', e => { e.preventDefault(); dropZone.style.
 dropZone.addEventListener('dragleave', () => { dropZone.style.background=''; });
 dropZone.addEventListener('drop', e => {
   e.preventDefault(); dropZone.style.background='';
-  const files = Array.from(e.dataTransfer.files).filter(f => f.type.startsWith('image/'));
-  files.forEach(f => selectedFiles.push(f));
-  if (selectedFiles.filter(Boolean).length > 0) showImgNavigator();
+  Array.from(e.dataTransfer.files).filter(f => f.type.startsWith('image/')).forEach(f => {
+    selectedFiles.push(f);
+    const reader = new FileReader();
+    reader.onload = (ev) => renderPreview(ev.target.result, selectedFiles.length - 1);
+    reader.readAsDataURL(f);
+  });
 });
 
 // ── Facebook Connect ──
@@ -578,24 +506,15 @@ function buildQueueItem(overrideMsg) {
 
 function buildBulkItems() {
   const imgMode = document.getElementById('imgTabFile').classList.contains('active') ? 'file' : 'url';
-  const validFiles = selectedFiles.filter(Boolean);
+  const validFiles = imgMode === 'file' ? selectedFiles.filter(Boolean) : [];
 
-  // โหมดไฟล์ → ใช้รูปปัจจุบัน (imgPointer) ทีละรูปเดียว
+  // โหมดไฟล์ → รูปละ 1 โพสต์ เพิ่มทั้งหมดทีเดียว
   if (imgMode === 'file' && validFiles.length > 0) {
-    const file = validFiles[imgPointer];
-    const msg = isRotateMode() ? (() => {
-      const caps = getCaptions();
-      if (caps.length === 0) return null;
-      const m = caps[capIdx % caps.length];
-      capIdx = (capIdx + 1) % caps.length;
-      document.getElementById('capIdxDisplay').textContent = capIdx + 1;
-      updateCapCount();
-      return m;
-    })() : document.getElementById('postMsg').value.trim();
-    if (isRotateMode() && msg === null) { alert('กรุณากรอกแคปชั่นอย่างน้อย 1 รายการ'); return null; }
-    const item = {
-      id: Date.now(),
-      message: msg || '',
+    const caps = isRotateMode() ? getCaptions() : null;
+    if (caps !== null && caps.length === 0) { alert('กรุณากรอกแคปชั่นอย่างน้อย 1 รายการ'); return null; }
+    const items = validFiles.map((file, i) => ({
+      id: Date.now() + i,
+      message: caps ? caps[(capIdx + i) % caps.length] : document.getElementById('postMsg').value.trim(),
       imgUrl: '',
       files: [file],
       fileNames: [file.name],
@@ -604,14 +523,16 @@ function buildBulkItems() {
       albumName: document.getElementById('albumSelect').options[document.getElementById('albumSelect').selectedIndex].text,
       schedTime: document.getElementById('schedTime').value,
       status: 'รอ', fbId: ''
-    };
-    // เลื่อนไปรูปถัดไปอัตโนมัติ
-    imgPointer = (imgPointer + 1) % validFiles.length;
-    showImgNavigator();
-    return [item];
+    }));
+    if (caps) {
+      capIdx = (capIdx + validFiles.length) % caps.length;
+      document.getElementById('capIdxDisplay').textContent = capIdx + 1;
+      updateCapCount();
+    }
+    return items;
   }
 
-  // โหมด URL หรือข้อความ → bulkCount + caption rotate
+  // โหมด URL / ข้อความ → bulkCount + caption rotate
   if (!isRotateMode()) return [buildQueueItem()];
   const caps = getCaptions();
   if (caps.length === 0) { alert('กรุณากรอกแคปชั่นอย่างน้อย 1 รายการ'); return null; }
@@ -652,9 +573,7 @@ function clearForm() {
   document.getElementById('schedTime').value = '';
   document.getElementById('albumSelect').value = '';
   selectedFiles = [];
-  imgPointer = 0;
-  document.getElementById('dropZone').style.display = '';
-  document.getElementById('imgNavigator').style.display = 'none';
+  document.getElementById('previewGrid').innerHTML = '';
 }
 
 // ── Posting ──
