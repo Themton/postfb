@@ -1133,7 +1133,8 @@ function loadSavedPage() {
   document.getElementById('pageName').value = p.name || '';
   document.getElementById('pageId').value = p.pageId;
   document.getElementById('token').value = p.token;
-  log(`โหลดเพจ "${p.name}" แล้ว — กดเชื่อมต่อเพื่อใช้งาน`, 'info');
+  log(`โหลดเพจ "${p.name}" — กำลังเชื่อมต่อ...`, 'info');
+  connectFB();
 }
 function deleteSavedPage() {
   const idx = document.getElementById('savedPagesSelect').value;
