@@ -174,7 +174,7 @@
               <button class="btn btn-secondary btn-sm" onclick="clearCaptions()">ล้าง</button>
             </div>
           </div>
-          <textarea id="capPoolInput" placeholder="พิมพ์แคปชั่น คั่นด้วย ---&#10;ตัวอย่าง:&#10;สินค้าคุณภาพดี ราคาถูก&#10;---&#10;จัดส่งทุกวัน ทั่วประเทศ&#10;---&#10;สั่งได้เลย มีของพร้อมส่ง" style="min-height:120px;" oninput="updateCapCount()"></textarea>
+          <textarea id="capPoolInput" placeholder="พิมพ์แคปชั่น คั่นด้วยบรรทัดว่าง&#10;ตัวอย่าง:&#10;สินค้าคุณภาพดี ราคาถูก&#10;&#10;จัดส่งทุกวัน ทั่วประเทศ&#10;&#10;สั่งได้เลย มีของพร้อมส่ง" style="min-height:120px;" oninput="updateCapCount()"></textarea>
           <div style="display:flex; gap:8px; margin-top:10px; align-items:center; flex-wrap:wrap;">
             <div style="display:flex; align-items:center; gap:6px;">
               <label style="margin:0; white-space:nowrap;">จำนวนโพสต์ที่ต้องการเพิ่ม:</label>
@@ -1124,7 +1124,7 @@ function renderSavedCaps() {
   const sel = document.getElementById('savedCapsSelect');
   const cur = sel.value;
   sel.innerHTML = '<option value="">— เลือกชุดที่บันทึก —</option>';
-  caps.forEach((c, i) => sel.innerHTML += `<option value="${i}">${c.name} (${c.captions.split('---').length} แคปชั่น)</option>`);
+  caps.forEach((c, i) => sel.innerHTML += `<option value="${i}">${c.name} (${getCaptionsFromText(c.captions).length} แคปชั่น)</option>`);
   if (cur) sel.value = cur;
 }
 function saveCapSet() {
@@ -1171,7 +1171,7 @@ function deleteSavedCap() {
   log(`ลบชุดแคปชั่น "${name}" แล้ว`, 'ok');
 }
 function getCaptionsFromText(text) {
-  return text.split(/\n---\n|\n---$|^---\n/).map(s => s.trim()).filter(Boolean);
+  return text.split(/\n\s*\n/).map(s => s.trim()).filter(Boolean);
 }
 
 // ── Log ──
