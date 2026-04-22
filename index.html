@@ -48,6 +48,28 @@
   .log-err { color: #721c24; }
   .log-info { color: #004085; }
 
+  /* ── Media type toggle ── */
+  .media-toggle { display:flex; gap:0; margin-bottom:10px; background:#f0f2f5; border-radius:8px; padding:3px; }
+  .media-toggle-btn { flex:1; padding:7px 12px; text-align:center; cursor:pointer; font-size:13px; font-weight:600; border-radius:6px; color:#606770; transition:all 0.2s; user-select:none; }
+  .media-toggle-btn.active-img { background:#1877f2; color:white; }
+  .media-toggle-btn.active-vid { background:#7b1fa2; color:white; }
+
+  /* ── Video upload zone ── */
+  .vid-section { border:1.5px dashed #7b1fa2; border-radius:8px; padding:14px; background:#faf5ff; }
+  .vid-tab { padding:5px 14px; border-radius:20px; font-size:13px; cursor:pointer; border:1px solid #ddd; background:white; color:#606770; }
+  .vid-tab.active { background:#7b1fa2; color:white; border-color:#7b1fa2; }
+  .upload-area-vid { border:2px dashed #7b1fa2; border-radius:8px; padding:20px; text-align:center; cursor:pointer; background:#f5eeff; transition:background 0.2s; }
+  .upload-area-vid:hover { background:#efe0ff; }
+  .upload-area-vid input { display:none; }
+  .upload-area-vid p { font-size:13px; color:#7b1fa2; margin-top:6px; }
+  .video-info-box { display:flex; align-items:center; gap:10px; padding:10px; background:#f3e5f5; border-radius:8px; margin-top:8px; font-size:13px; }
+  .video-info-box .vid-icon { font-size:24px; }
+  .video-info-box .vid-name { font-weight:600; color:#7b1fa2; }
+  .video-info-box .vid-size { color:#999; font-size:12px; }
+  .video-preview { margin-top:8px; border-radius:8px; overflow:hidden; }
+  .video-preview video { width:100%; max-height:260px; border-radius:8px; }
+  .badge-vid { background:#f3e5f5; color:#7b1fa2; }
+
   /* ── Image upload zone ── */
   .img-section { border: 1.5px dashed #c0c4cb; border-radius: 8px; padding: 14px; background: #fafafa; }
   .img-tabs { display: flex; gap: 8px; margin-bottom: 12px; }
@@ -70,7 +92,7 @@
 <header>
   <span style="font-size:22px;">📘</span>
   <h1>FB Bulk Poster Pro</h1>
-  <span style="font-size:12px; opacity:0.8; margin-left:6px;">โพสต์ Facebook อัตโนมัติ + อัลบั้ม + Shopee</span>
+  <span style="font-size:12px; opacity:0.8; margin-left:6px;">โพสต์ Facebook อัตโนมัติ + อัลบั้ม + วิดีโอ + Shopee</span>
 </header>
 
 <div class="container">
@@ -168,30 +190,58 @@
         </div>
       </div>
 
-      <!-- IMAGE SECTION (NEW) -->
+      <!-- MEDIA SECTION -->
       <div style="margin-top:12px;">
-        <label>รูปภาพ</label>
-        <div class="img-section">
-          <div class="img-tabs">
-            <div class="img-tab active" id="imgTabUrl" onclick="switchImgTab('url')">🔗 ลิงก์ URL</div>
-            <div class="img-tab" id="imgTabFile" onclick="switchImgTab('file')">📁 อัพโหลดจากเครื่อง</div>
-          </div>
+        <label>สื่อ (รูปภาพ / วิดีโอ)</label>
+        <div class="media-toggle">
+          <div class="media-toggle-btn active-img" id="mediaTabImg" onclick="switchMediaType('image')">📷 รูปภาพ</div>
+          <div class="media-toggle-btn" id="mediaTabVid" onclick="switchMediaType('video')">🎬 วิดีโอ</div>
+        </div>
 
-          <!-- URL mode -->
-          <div id="imgModeUrl">
-            <input type="text" id="imgUrl" placeholder="https://example.com/image.jpg (เว้นว่างได้)">
-          </div>
-
-          <!-- File mode -->
-          <div id="imgModeFile" style="display:none;">
-            <div class="upload-area" onclick="document.getElementById('fileInput').click()" id="dropZone">
-              <input type="file" id="fileInput" accept="image/*" multiple onchange="handleFileSelect(event)">
-              <div style="font-size:32px;">📷</div>
-              <p>คลิกหรือลากรูปมาวางที่นี่</p>
-              <p style="color:#999; font-size:12px;">รองรับ JPG, PNG, GIF, WEBP — เลือกหลายรูปได้ แต่ละรูปจะเป็นโพสต์แยกกัน</p>
+        <!-- IMAGE SECTION -->
+        <div id="mediaImageSection">
+          <div class="img-section">
+            <div class="img-tabs">
+              <div class="img-tab active" id="imgTabUrl" onclick="switchImgTab('url')">🔗 ลิงก์ URL</div>
+              <div class="img-tab" id="imgTabFile" onclick="switchImgTab('file')">📁 อัพโหลดจากเครื่อง</div>
             </div>
-            <div class="preview-grid" id="previewGrid"></div>
+            <div id="imgModeUrl">
+              <input type="text" id="imgUrl" placeholder="https://example.com/image.jpg (เว้นว่างได้)">
+            </div>
+            <div id="imgModeFile" style="display:none;">
+              <div class="upload-area" onclick="document.getElementById('fileInput').click()" id="dropZone">
+                <input type="file" id="fileInput" accept="image/*" multiple onchange="handleFileSelect(event)">
+                <div style="font-size:32px;">📷</div>
+                <p>คลิกหรือลากรูปมาวางที่นี่</p>
+                <p style="color:#999; font-size:12px;">รองรับ JPG, PNG, GIF, WEBP — เลือกหลายรูปได้ แต่ละรูปจะเป็นโพสต์แยกกัน</p>
+              </div>
+              <div class="preview-grid" id="previewGrid"></div>
+            </div>
           </div>
+        </div>
+
+        <!-- VIDEO SECTION -->
+        <div id="mediaVideoSection" style="display:none;">
+          <div class="vid-section">
+            <div class="img-tabs">
+              <div class="vid-tab active" id="vidTabUrl" onclick="switchVidTab('url')">🔗 ลิงก์ URL วิดีโอ</div>
+              <div class="vid-tab" id="vidTabFile" onclick="switchVidTab('file')">📁 อัพโหลดจากเครื่อง</div>
+            </div>
+            <div id="vidModeUrl">
+              <input type="text" id="vidUrl" placeholder="https://example.com/video.mp4 (เว้นว่างได้)">
+              <p style="font-size:12px; color:#999; margin-top:4px;">รองรับลิงก์ไฟล์วิดีโอ MP4, MOV, AVI โดยตรง</p>
+            </div>
+            <div id="vidModeFile" style="display:none;">
+              <div class="upload-area-vid" onclick="document.getElementById('videoFileInput').click()" id="videoDropZone">
+                <input type="file" id="videoFileInput" accept="video/*" onchange="handleVideoSelect(event)">
+                <div style="font-size:32px;">🎬</div>
+                <p>คลิกหรือลากวิดีโอมาวางที่นี่</p>
+                <p style="color:#999; font-size:12px;">รองรับ MP4, MOV, AVI, MKV — ไฟล์ละไม่เกิน 1 GB</p>
+              </div>
+              <div id="videoPreviewArea"></div>
+            </div>
+          </div>
+          <p id="albumNoteVideo" style="font-size:12px; color:#ef6c00; margin-top:6px;">⚠️ วิดีโอจะโพสต์ลง Feed เสมอ (ไม่รองรับอัลบั้ม)</p>
         </div>
       </div>
 
@@ -242,7 +292,7 @@
       </div>
       <div style="overflow-x:auto;">
         <table id="queueTable">
-          <thead><tr><th></th><th>ข้อความ</th><th>รูป</th><th>Shopee</th><th>อัลบั้ม</th><th>เวลา</th><th>สถานะ</th><th>จัดการ</th></tr></thead>
+          <thead><tr><th></th><th>ข้อความ</th><th>สื่อ</th><th>Shopee</th><th>อัลบั้ม</th><th>เวลา</th><th>สถานะ</th><th>จัดการ</th></tr></thead>
           <tbody id="queueBody"><tr><td colspan="8" style="text-align:center; color:#999; padding:20px;">📭 ยังไม่มีโพสต์ในคิว</td></tr></tbody>
         </table>
       </div>
@@ -307,6 +357,8 @@ let queue = [];
 let posted = [];
 let albums = [];
 let selectedFiles = [];
+let selectedVideoFile = null;
+let currentMediaType = 'image'; // 'image' or 'video'
 let isConnected = false;
 let capIdx = 0; // caption rotation index
 
@@ -410,6 +462,71 @@ dropZone.addEventListener('drop', e => {
   });
 });
 
+// ── Media type switching ──
+function switchMediaType(type) {
+  currentMediaType = type;
+  document.getElementById('mediaImageSection').style.display = type==='image' ? '' : 'none';
+  document.getElementById('mediaVideoSection').style.display = type==='video' ? '' : 'none';
+  document.getElementById('mediaTabImg').className = 'media-toggle-btn' + (type==='image' ? ' active-img' : '');
+  document.getElementById('mediaTabVid').className = 'media-toggle-btn' + (type==='video' ? ' active-vid' : '');
+}
+
+function switchVidTab(mode) {
+  document.getElementById('vidModeUrl').style.display = mode==='url' ? '' : 'none';
+  document.getElementById('vidModeFile').style.display = mode==='file' ? '' : 'none';
+  document.getElementById('vidTabUrl').classList.toggle('active', mode==='url');
+  document.getElementById('vidTabFile').classList.toggle('active', mode==='file');
+}
+
+// ── Video file handling ──
+function handleVideoSelect(e) {
+  const file = e.target.files[0];
+  if (!file) return;
+  if (!file.type.startsWith('video/')) { alert('กรุณาเลือกไฟล์วิดีโอ'); return; }
+  if (file.size > 1073741824) { alert('ไฟล์วิดีโอใหญ่เกินไป (สูงสุด 1 GB)'); return; }
+  selectedVideoFile = file;
+  renderVideoPreview();
+  e.target.value = '';
+}
+
+function renderVideoPreview() {
+  const area = document.getElementById('videoPreviewArea');
+  if (!selectedVideoFile) { area.innerHTML = ''; return; }
+  const f = selectedVideoFile;
+  const sizeMB = (f.size / 1048576).toFixed(1);
+  area.innerHTML = `
+    <div class="video-info-box">
+      <div class="vid-icon">🎬</div>
+      <div style="flex:1;">
+        <div class="vid-name">${f.name}</div>
+        <div class="vid-size">${sizeMB} MB · ${f.type}</div>
+      </div>
+      <button class="btn btn-danger btn-sm" onclick="removeVideo()">✕</button>
+    </div>
+    <div class="video-preview">
+      <video src="${URL.createObjectURL(f)}" controls></video>
+    </div>`;
+}
+
+function removeVideo() {
+  selectedVideoFile = null;
+  document.getElementById('videoPreviewArea').innerHTML = '';
+  document.getElementById('videoFileInput').value = '';
+}
+
+// Video drag & drop
+const videoDropZone = document.getElementById('videoDropZone');
+videoDropZone.addEventListener('dragover', e => { e.preventDefault(); videoDropZone.style.background='#efe0ff'; });
+videoDropZone.addEventListener('dragleave', () => { videoDropZone.style.background=''; });
+videoDropZone.addEventListener('drop', e => {
+  e.preventDefault(); videoDropZone.style.background='';
+  const file = Array.from(e.dataTransfer.files).find(f => f.type.startsWith('video/'));
+  if (!file) { alert('กรุณาเลือกไฟล์วิดีโอ'); return; }
+  if (file.size > 1073741824) { alert('ไฟล์วิดีโอใหญ่เกินไป (สูงสุด 1 GB)'); return; }
+  selectedVideoFile = file;
+  renderVideoPreview();
+});
+
 // ── Facebook Connect ──
 async function connectFB() {
   const pageId = document.getElementById('pageId').value.trim();
@@ -487,17 +604,22 @@ async function createAlbum() {
 // ── Queue ──
 function buildQueueItem(overrideMsg) {
   const imgMode = document.getElementById('imgTabFile').classList.contains('active') ? 'file' : 'url';
+  const vidMode = document.getElementById('vidTabFile').classList.contains('active') ? 'file' : 'url';
   const files = imgMode === 'file' ? selectedFiles.filter(Boolean) : [];
   const msg = overrideMsg !== undefined ? overrideMsg : document.getElementById('postMsg').value.trim();
   return {
     id: Date.now() + Math.random(),
     message: msg,
-    imgUrl: imgMode === 'url' ? document.getElementById('imgUrl').value.trim() : '',
-    files: files,
-    fileNames: files.map(f => f.name),
+    mediaType: currentMediaType, // 'image' or 'video'
+    imgUrl: currentMediaType === 'image' && imgMode === 'url' ? document.getElementById('imgUrl').value.trim() : '',
+    files: currentMediaType === 'image' ? files : [],
+    fileNames: currentMediaType === 'image' ? files.map(f => f.name) : [],
+    vidUrl: currentMediaType === 'video' && vidMode === 'url' ? document.getElementById('vidUrl').value.trim() : '',
+    videoFile: currentMediaType === 'video' && vidMode === 'file' ? selectedVideoFile : null,
+    videoFileName: currentMediaType === 'video' && vidMode === 'file' && selectedVideoFile ? selectedVideoFile.name : '',
     shopee: document.getElementById('shopeeUrl').value.trim(),
-    album: document.getElementById('albumSelect').value,
-    albumName: document.getElementById('albumSelect').options[document.getElementById('albumSelect').selectedIndex].text,
+    album: currentMediaType === 'video' ? '' : document.getElementById('albumSelect').value,
+    albumName: currentMediaType === 'video' ? 'Feed' : document.getElementById('albumSelect').options[document.getElementById('albumSelect').selectedIndex].text,
     schedTime: document.getElementById('schedTime').value,
     status: 'รอ',
     fbId: ''
@@ -548,8 +670,8 @@ function buildBulkItems() {
 function addToQueue() {
   const items = buildBulkItems();
   if (!items) return;
-  const hasContent = items.every(it => it.message || it.imgUrl || it.files.length > 0);
-  if (!hasContent) { alert('กรุณากรอกข้อความหรือเลือกรูปภาพ'); return; }
+  const hasContent = items.every(it => it.message || it.imgUrl || it.files.length > 0 || it.vidUrl || it.videoFile);
+  if (!hasContent) { alert('กรุณากรอกข้อความหรือเลือกรูปภาพ/วิดีโอ'); return; }
   const emptyMsg = items.filter(it => !it.message || !it.message.trim());
   if (emptyMsg.length > 0) {
     log(`⚠️ ${emptyMsg.length} โพสต์ไม่มีแคปชั่น — กรุณาตรวจสอบ`, 'err');
@@ -562,8 +684,8 @@ function addToQueue() {
 async function addAndPost() {
   const items = buildBulkItems();
   if (!items) return;
-  const hasContent = items.every(it => it.message || it.imgUrl || it.files.length > 0);
-  if (!hasContent) { alert('กรุณากรอกข้อความหรือเลือกรูปภาพ'); return; }
+  const hasContent = items.every(it => it.message || it.imgUrl || it.files.length > 0 || it.vidUrl || it.videoFile);
+  if (!hasContent) { alert('กรุณากรอกข้อความหรือเลือกรูปภาพ/วิดีโอ'); return; }
   if (!isConnected) { alert('กรุณาเชื่อมต่อ Facebook ก่อน'); return; }
   items.forEach(it => queue.push(it));
   renderQueue();
@@ -573,11 +695,13 @@ async function addAndPost() {
 function clearForm() {
   document.getElementById('postMsg').value = '';
   document.getElementById('imgUrl').value = '';
+  document.getElementById('vidUrl').value = '';
   document.getElementById('shopeeUrl').value = '';
   document.getElementById('schedTime').value = '';
   document.getElementById('albumSelect').value = '';
   selectedFiles = [];
   document.getElementById('previewGrid').innerHTML = '';
+  removeVideo();
 }
 
 // ── Posting ──
@@ -592,14 +716,17 @@ async function postItem(item) {
 
   // log แสดงแคปชั่นก่อนโพสต์
   if (!caption) {
-    log(`⚠️ ${item.fileNames?.[0] || 'โพสต์'} → แคปชั่น: (ว่าง)`, 'err');
+    log(`⚠️ ${item.videoFileName || item.fileNames?.[0] || 'โพสต์'} → แคปชั่น: (ว่าง)`, 'err');
   } else {
-    log(`📝 ${item.fileNames?.[0] || 'โพสต์'} → "${caption.substring(0,50)}${caption.length>50?'...':''}"`, 'info');
+    log(`📝 ${item.videoFileName || item.fileNames?.[0] || 'โพสต์'} → "${caption.substring(0,50)}${caption.length>50?'...':''}"`, 'info');
   }
 
   try {
     let result;
-    if (item.files && item.files.length > 0) {
+    if (item.mediaType === 'video' && (item.videoFile || item.vidUrl)) {
+      // ── โพสต์วิดีโอ ──
+      result = await postVideo(pageId, token, fullMsg, item);
+    } else if (item.files && item.files.length > 0) {
       // ── อัพโหลดจากไฟล์ (NEW) ──
       result = await postWithFiles(pageId, token, fullMsg, item.files, item.album);
     } else if (item.imgUrl) {
@@ -612,7 +739,7 @@ async function postItem(item) {
     item.status = 'สำเร็จ';
     item.fbId = result.id || result.post_id || '';
     log(`โพสต์สำเร็จ! Post ID: ${item.fbId}`, 'ok');
-    posted.push({ ...item, postedAt: new Date().toLocaleString('th-TH') });
+    posted.push({ ...item, postedAt: new Date().toLocaleString('th-TH'), mediaType: item.mediaType || 'image' });
     renderPosted();
   } catch(e) {
     item.status = 'ผิดพลาด';
@@ -690,6 +817,90 @@ async function postText(pageId, token, message) {
   return d;
 }
 
+// ── Video posting ──
+async function postVideo(pageId, token, message, item) {
+  const endpoint = `https://graph-video.facebook.com/v18.0/${pageId}/videos`;
+
+  if (item.videoFile) {
+    // ── อัพโหลดวิดีโอจากไฟล์ ──
+    if (item.videoFile.size > 50 * 1024 * 1024) {
+      // ใช้ Resumable Upload สำหรับไฟล์ > 50MB
+      return await resumableVideoUpload(pageId, token, message, item.videoFile);
+    } else {
+      // Direct upload สำหรับไฟล์ขนาดเล็ก
+      log(`📤 กำลังอัพโหลดวิดีโอ "${item.videoFileName}"...`, 'info');
+      const body = new FormData();
+      body.append('source', item.videoFile);
+      body.append('description', message);
+      body.append('access_token', token);
+      const r = await fetch(endpoint, { method:'POST', body });
+      const d = await r.json();
+      if (d.error) throw new Error(d.error.message);
+      return d;
+    }
+  } else if (item.vidUrl) {
+    // ── อัพโหลดวิดีโอจาก URL ──
+    log(`📤 กำลังโพสต์วิดีโอจาก URL...`, 'info');
+    const body = new FormData();
+    body.append('file_url', item.vidUrl);
+    body.append('description', message);
+    body.append('access_token', token);
+    const r = await fetch(endpoint, { method:'POST', body });
+    const d = await r.json();
+    if (d.error) throw new Error(d.error.message);
+    return d;
+  }
+  throw new Error('ไม่พบไฟล์วิดีโอ');
+}
+
+async function resumableVideoUpload(pageId, token, message, file) {
+  // ขั้น 1: เริ่ม upload session
+  log('📤 เริ่มอัพโหลดวิดีโอแบบ Resumable...', 'info');
+  const initBody = new FormData();
+  initBody.append('upload_phase', 'start');
+  initBody.append('file_size', file.size);
+  initBody.append('access_token', token);
+  const initR = await fetch(`https://graph-video.facebook.com/v18.0/${pageId}/videos`, { method:'POST', body:initBody });
+  const initD = await initR.json();
+  if (initD.error) throw new Error(initD.error.message);
+
+  const sessionId = initD.upload_session_id;
+  let curStart = parseInt(initD.start_offset);
+  let curEnd = parseInt(initD.end_offset);
+  let chunkNum = 0;
+
+  // ขั้น 2: อัพโหลดทีละ chunk
+  while (curStart < file.size) {
+    const chunk = file.slice(curStart, curEnd);
+    const chunkBody = new FormData();
+    chunkBody.append('upload_phase', 'transfer');
+    chunkBody.append('upload_session_id', sessionId);
+    chunkBody.append('start_offset', curStart);
+    chunkBody.append('video_file_chunk', chunk);
+    chunkBody.append('access_token', token);
+    const chunkR = await fetch(`https://graph-video.facebook.com/v18.0/${pageId}/videos`, { method:'POST', body:chunkBody });
+    const chunkD = await chunkR.json();
+    if (chunkD.error) throw new Error(chunkD.error.message);
+    curStart = parseInt(chunkD.start_offset);
+    curEnd = parseInt(chunkD.end_offset);
+    chunkNum++;
+    const pct = Math.round((curStart / file.size) * 100);
+    log(`📤 อัพโหลดวิดีโอ: ${pct}% (chunk ${chunkNum})`, 'info');
+  }
+
+  // ขั้น 3: จบ upload
+  const finBody = new FormData();
+  finBody.append('upload_phase', 'finish');
+  finBody.append('upload_session_id', sessionId);
+  finBody.append('description', message);
+  finBody.append('access_token', token);
+  const finR = await fetch(`https://graph-video.facebook.com/v18.0/${pageId}/videos`, { method:'POST', body:finBody });
+  const finD = await finR.json();
+  if (finD.error) throw new Error(finD.error.message);
+  log('✅ อัพโหลดวิดีโอเสร็จสิ้น!', 'ok');
+  return finD;
+}
+
 // ── Queue render ──
 function renderQueue() {
   document.getElementById('queueCount').textContent = queue.length;
@@ -702,7 +913,7 @@ function renderQueue() {
     <tr>
       <td><input type="checkbox" class="q-check" data-idx="${i}"></td>
       <td style="max-width:200px; word-break:break-word;">${item.message || '—'}</td>
-      <td>${item.files && item.files.length > 0 ? '📁 ' + item.fileNames.join(', ') : (item.imgUrl ? '🔗' : '—')}</td>
+      <td>${item.mediaType === 'video' ? (item.videoFile ? '🎬 ' + item.videoFileName : (item.vidUrl ? '🎬🔗' : '—')) : (item.files && item.files.length > 0 ? '📁 ' + item.fileNames.join(', ') : (item.imgUrl ? '🔗' : '—'))}</td>
       <td>${item.shopee ? '🛒' : '—'}</td>
       <td>${item.album ? item.albumName : 'Feed'}</td>
       <td>${item.schedTime || 'ทันที'}</td>
@@ -758,7 +969,7 @@ function renderPosted() {
   tbody.innerHTML = posted.map((p, i) => `
     <tr>
       <td><input type="checkbox" class="p-check" data-idx="${i}"></td>
-      <td style="max-width:200px; word-break:break-word;">${p.message || '—'}</td>
+      <td style="max-width:200px; word-break:break-word;">${p.mediaType === 'video' ? '🎬 ' : ''}${p.message || '—'}</td>
       <td><a href="https://facebook.com/${p.fbId}" target="_blank" style="color:#1877f2;">${p.fbId || '—'}</a></td>
       <td>${p.postedAt}</td>
       <td><span class="badge badge-ok">สำเร็จ</span></td>
