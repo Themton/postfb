@@ -540,6 +540,7 @@ async function connectFB() {
     const d = await r.json();
     if (d.error) throw new Error(d.error.message);
     isConnected = true;
+    document.getElementById('pageName').value = d.name;
     document.getElementById('statusBar').textContent = `Facebook: เชื่อมต่อแล้ว ✅  |  เพจ: ${d.name} (${d.id})`;
     document.getElementById('statusBar').className = 'status-bar connected';
     log(`เชื่อมต่อเพจ "${d.name}" สำเร็จ`, 'ok');
