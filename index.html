@@ -236,10 +236,10 @@
             </div>
             <div id="vidModeFile" style="display:none;">
               <div class="upload-area-vid" onclick="document.getElementById('videoFileInput').click()" id="videoDropZone">
-                <input type="file" id="videoFileInput" accept="video/*" onchange="handleVideoSelect(event)">
+                <input type="file" id="videoFileInput" accept="video/*" multiple onchange="handleVideoSelect(event)">
                 <div style="font-size:32px;">🎬</div>
                 <p>คลิกหรือลากวิดีโอมาวางที่นี่</p>
-                <p style="color:#999; font-size:12px;">รองรับ MP4, MOV, AVI, MKV — ไฟล์ละไม่เกิน 1 GB</p>
+                <p style="color:#999; font-size:12px;">รองรับ MP4, MOV, AVI, MKV — เลือกหลายไฟล์ได้ แต่ละไฟล์จะเป็นโพสต์แยกกัน</p>
               </div>
               <div id="videoPreviewArea"></div>
             </div>
@@ -360,7 +360,7 @@ let queue = [];
 let posted = [];
 let albums = [];
 let selectedFiles = [];
-let selectedVideoFile = null;
+let selectedVideoFiles = [];
 let currentMediaType = 'image'; // 'image' or 'video'
 let isConnected = false;
 let capIdx = 0; // caption rotation index
@@ -483,38 +483,36 @@ function switchVidTab(mode) {
 
 // ── Video file handling ──
 function handleVideoSelect(e) {
-  const file = e.target.files[0];
-  if (!file) return;
-  if (!file.type.startsWith('video/')) { alert('กรุณาเลือกไฟล์วิดีโอ'); return; }
-  if (file.size > 1073741824) { alert('ไฟล์วิดีโอใหญ่เกินไป (สูงสุด 1 GB)'); return; }
-  selectedVideoFile = file;
+  Array.from(e.target.files).forEach(file => {
+    if (!file.type.startsWith('video/')) return;
+    if (file.size > 1073741824) { log(`❌ ${file.name} ใหญ่เกินไป (สูงสุด 1 GB)`, 'err'); return; }
+    selectedVideoFiles.push(file);
+  });
   renderVideoPreview();
   e.target.value = '';
 }
 
 function renderVideoPreview() {
   const area = document.getElementById('videoPreviewArea');
-  if (!selectedVideoFile) { area.innerHTML = ''; return; }
-  const f = selectedVideoFile;
-  const sizeMB = (f.size / 1048576).toFixed(1);
-  area.innerHTML = `
-    <div class="video-info-box">
+  if (selectedVideoFiles.length === 0) { area.innerHTML = ''; return; }
+  area.innerHTML = selectedVideoFiles.map((f, i) => {
+    const sizeMB = (f.size / 1048576).toFixed(1);
+    return `
+    <div class="video-info-box" style="margin-top:${i>0?'6':'8'}px;">
       <div class="vid-icon">🎬</div>
       <div style="flex:1;">
         <div class="vid-name">${f.name}</div>
         <div class="vid-size">${sizeMB} MB · ${f.type}</div>
       </div>
-      <button class="btn btn-danger btn-sm" onclick="removeVideo()">✕</button>
-    </div>
-    <div class="video-preview">
-      <video src="${URL.createObjectURL(f)}" controls></video>
+      <button class="btn btn-danger btn-sm" onclick="removeVideo(${i})">✕</button>
     </div>`;
+  }).join('');
+  area.innerHTML += `<p style="font-size:12px; color:#7b1fa2; margin-top:6px;">🎬 ${selectedVideoFiles.length} วิดีโอ — แต่ละไฟล์จะเป็นโพสต์แยกกัน</p>`;
 }
 
-function removeVideo() {
-  selectedVideoFile = null;
-  document.getElementById('videoPreviewArea').innerHTML = '';
-  document.getElementById('videoFileInput').value = '';
+function removeVideo(idx) {
+  selectedVideoFiles.splice(idx, 1);
+  renderVideoPreview();
 }
 
 // Video drag & drop
@@ -523,10 +521,11 @@ videoDropZone.addEventListener('dragover', e => { e.preventDefault(); videoDropZ
 videoDropZone.addEventListener('dragleave', () => { videoDropZone.style.background=''; });
 videoDropZone.addEventListener('drop', e => {
   e.preventDefault(); videoDropZone.style.background='';
-  const file = Array.from(e.dataTransfer.files).find(f => f.type.startsWith('video/'));
-  if (!file) { alert('กรุณาเลือกไฟล์วิดีโอ'); return; }
-  if (file.size > 1073741824) { alert('ไฟล์วิดีโอใหญ่เกินไป (สูงสุด 1 GB)'); return; }
-  selectedVideoFile = file;
+  Array.from(e.dataTransfer.files).forEach(file => {
+    if (!file.type.startsWith('video/')) return;
+    if (file.size > 1073741824) { log(`❌ ${file.name} ใหญ่เกินไป (สูงสุด 1 GB)`, 'err'); return; }
+    selectedVideoFiles.push(file);
+  });
   renderVideoPreview();
 });
 
@@ -605,21 +604,22 @@ async function createAlbum() {
 }
 
 // ── Queue ──
-function buildQueueItem(overrideMsg) {
+function buildQueueItem(overrideMsg, overrideVideoFile) {
   const imgMode = document.getElementById('imgTabFile').classList.contains('active') ? 'file' : 'url';
   const vidMode = document.getElementById('vidTabFile').classList.contains('active') ? 'file' : 'url';
   const files = imgMode === 'file' ? selectedFiles.filter(Boolean) : [];
   const msg = overrideMsg !== undefined ? overrideMsg : document.getElementById('postMsg').value.trim();
+  const vFile = overrideVideoFile !== undefined ? overrideVideoFile : (selectedVideoFiles.length > 0 ? selectedVideoFiles[0] : null);
   return {
     id: Date.now() + Math.random(),
     message: msg,
-    mediaType: currentMediaType, // 'image' or 'video'
+    mediaType: currentMediaType,
     imgUrl: currentMediaType === 'image' && imgMode === 'url' ? document.getElementById('imgUrl').value.trim() : '',
     files: currentMediaType === 'image' ? files : [],
     fileNames: currentMediaType === 'image' ? files.map(f => f.name) : [],
     vidUrl: currentMediaType === 'video' && vidMode === 'url' ? document.getElementById('vidUrl').value.trim() : '',
-    videoFile: currentMediaType === 'video' && vidMode === 'file' ? selectedVideoFile : null,
-    videoFileName: currentMediaType === 'video' && vidMode === 'file' && selectedVideoFile ? selectedVideoFile.name : '',
+    videoFile: currentMediaType === 'video' && vidMode === 'file' ? vFile : null,
+    videoFileName: currentMediaType === 'video' && vidMode === 'file' && vFile ? vFile.name : '',
     shopee: document.getElementById('shopeeUrl').value.trim(),
     album: currentMediaType === 'video' ? '' : document.getElementById('albumSelect').value,
     albumName: currentMediaType === 'video' ? 'Feed' : document.getElementById('albumSelect').options[document.getElementById('albumSelect').selectedIndex].text,
@@ -631,18 +631,47 @@ function buildQueueItem(overrideMsg) {
 
 function buildBulkItems() {
   const imgMode = document.getElementById('imgTabFile').classList.contains('active') ? 'file' : 'url';
+  const vidMode = document.getElementById('vidTabFile').classList.contains('active') ? 'file' : 'url';
   const validFiles = imgMode === 'file' ? selectedFiles.filter(Boolean) : [];
 
-  // โหมดไฟล์ → รูปละ 1 โพสต์ เพิ่มทั้งหมดทีเดียว
-  if (imgMode === 'file' && validFiles.length > 0) {
+  // โหมดวิดีโอไฟล์ → วิดีโอละ 1 โพสต์
+  if (currentMediaType === 'video' && vidMode === 'file' && selectedVideoFiles.length > 0) {
+    const caps = isRotateMode() ? getCaptions() : null;
+    if (caps !== null && caps.length === 0) { alert('กรุณากรอกแคปชั่นอย่างน้อย 1 รายการ'); return null; }
+    const items = selectedVideoFiles.map((file, i) => ({
+      id: Date.now() + i,
+      message: caps ? caps[(capIdx + i) % caps.length] : document.getElementById('postMsg').value.trim(),
+      mediaType: 'video',
+      imgUrl: '', files: [], fileNames: [],
+      vidUrl: '',
+      videoFile: file,
+      videoFileName: file.name,
+      shopee: document.getElementById('shopeeUrl').value.trim(),
+      album: '',
+      albumName: 'Feed',
+      schedTime: document.getElementById('schedTime').value,
+      status: 'รอ', fbId: ''
+    }));
+    if (caps) {
+      capIdx = (capIdx + selectedVideoFiles.length) % caps.length;
+      document.getElementById('capIdxDisplay').textContent = capIdx + 1;
+      updateCapCount();
+    }
+    return items;
+  }
+
+  // โหมดรูปไฟล์ → รูปละ 1 โพสต์
+  if (currentMediaType === 'image' && imgMode === 'file' && validFiles.length > 0) {
     const caps = isRotateMode() ? getCaptions() : null;
     if (caps !== null && caps.length === 0) { alert('กรุณากรอกแคปชั่นอย่างน้อย 1 รายการ'); return null; }
     const items = validFiles.map((file, i) => ({
       id: Date.now() + i,
       message: caps ? caps[(capIdx + i) % caps.length] : document.getElementById('postMsg').value.trim(),
+      mediaType: 'image',
       imgUrl: '',
       files: [file],
       fileNames: [file.name],
+      vidUrl: '', videoFile: null, videoFileName: '',
       shopee: document.getElementById('shopeeUrl').value.trim(),
       album: document.getElementById('albumSelect').value,
       albumName: document.getElementById('albumSelect').options[document.getElementById('albumSelect').selectedIndex].text,
@@ -704,7 +733,9 @@ function clearForm() {
   document.getElementById('albumSelect').value = '';
   selectedFiles = [];
   document.getElementById('previewGrid').innerHTML = '';
-  removeVideo();
+  selectedVideoFiles = [];
+  document.getElementById('videoPreviewArea').innerHTML = '';
+  document.getElementById('videoFileInput').value = '';
 }
 
 // ── Posting ──
