@@ -3,6 +3,9 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
+<meta http-equiv="Pragma" content="no-cache">
+<meta http-equiv="Expires" content="0">
 <title>FB Bulk Poster Pro</title>
 <style>
   * { box-sizing: border-box; margin: 0; padding: 0; }
@@ -1171,7 +1174,8 @@ function deleteSavedCap() {
   log(`ลบชุดแคปชั่น "${name}" แล้ว`, 'ok');
 }
 function getCaptionsFromText(text) {
-  return text.split(/\n\s*\n/).map(s => s.trim()).filter(Boolean);
+  // แยกแคปชั่นด้วยบรรทัดว่าง (รองรับทั้ง \n และ \r\n)
+  return text.split(/\r?\n(?:[ \t]*\r?\n)+/).map(s => s.trim()).filter(Boolean);
 }
 
 // ── Log ──
